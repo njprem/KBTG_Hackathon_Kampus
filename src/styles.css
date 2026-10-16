@@ -3,3 +3,15 @@
 @media(max-width:359px){.screen-body{padding-left:15px;padding-right:15px}.balance-card>strong,.big-money{font-size:28px}}
 .icon-button{width:44px;height:44px}
 .screen-body:focus{outline:none}
+
+/* Keep navigation outside the scrolling content so it never covers a card. */
+.site-shell{height:100dvh;min-height:0;overflow:hidden}
+.phone-shell{height:100dvh;min-height:0;overflow:hidden}
+.brandbar,.app-header,.bottom-nav{flex-shrink:0}
+.screen-body{min-height:0;overflow-y:auto;overscroll-behavior:contain}
+.bottom-nav{position:relative;bottom:auto}
+
+@media(min-width:860px){
+  .phone-shell{height:min(850px,calc(100dvh - 70px));min-height:0;overflow:hidden}
+  .screen-body{min-height:0}
+}
