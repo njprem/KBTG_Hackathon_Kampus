@@ -28,3 +28,5 @@ The accumulated limit uses the Asia/Bangkok calendar month. Several eligibility 
 Use the reset control to start over. A visible demo control may skip the one-minute wait so a facilitator can show the whole flow quickly; it is separate from the real wait behavior being tested.
 
 The app is configured for a Vercel SPA deployment, including direct-link fallback. For external testing, use a protected preview and narrowly shared access. The competition upload guide requires closing online demo access after mentoring and the event. No live URL is recorded here until a deployment has been verified.
+
+Keep Vercel Authentication set to **All Deployments**, including production, and use revocable share links only for approved testers. The `vercel.json` security headers and no-index directives reduce browser and crawler exposure, but they are not a replacement for deployment protection. Disable access and revoke any share links after the event.
