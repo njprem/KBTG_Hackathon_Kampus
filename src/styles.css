@@ -7,8 +7,10 @@
 /* Keep navigation outside the scrolling content so it never covers a card. */
 .site-shell{height:100dvh;min-height:0;overflow:hidden}
 .phone-shell{height:100dvh;min-height:0;overflow:hidden}
-.brandbar,.app-header,.bottom-nav{flex-shrink:0}
+.brandbar,.app-header,.settings-save-bar,.bottom-nav{flex-shrink:0}
 .screen-body{min-height:0;overflow-y:auto;overscroll-behavior:contain}
+.settings-save-bar{background:#fff;border-top:1px solid #dde8e3;padding:10px 20px;box-shadow:0 -6px 16px #1c49400b}
+.settings-save-bar .primary{min-height:49px}
 .bottom-nav{position:relative;bottom:auto}
 
 @media(min-width:860px){
@@ -63,32 +65,32 @@
 .amount-clear:hover{background:#eaf3ef}
 
 /* Smart Pause stays over the transfer review, so the sender never loses context. */
-.pause-backdrop{position:fixed;inset:0;z-index:90;display:grid;place-items:center;background:#15201dd1;padding:14px}
-.pause-dialog{width:min(100%,430px);max-height:calc(100dvh - 28px);overflow-y:auto;overscroll-behavior:contain;background:#fff;border-radius:22px;padding:18px;box-shadow:0 24px 70px #160d0e55;color:#17312f}
+.pause-backdrop{position:fixed;inset:0;z-index:90;display:grid;place-items:center;background:#15201dd1;padding:20px}
+.pause-dialog{width:min(100%,380px);max-height:min(680px,calc(100dvh - 64px));overflow-y:auto;overscroll-behavior:contain;background:#fff;border-radius:20px;padding:15px;box-shadow:0 24px 70px #160d0e55;color:#17312f}
 .pause-dialog:focus{outline:none}
-.pause-topline{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:-5px -5px 10px 1px;color:#7e2630;font-size:11px;font-weight:800}
-.pause-alert{background:#bf1729;color:#fff;border-radius:15px;padding:17px 17px 15px}
-.pause-alert>svg{display:block;margin-bottom:7px}
-.pause-alert h2{margin:0 0 3px;font-size:21px;line-height:1.35}
+.pause-topline{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:-5px -5px 7px 1px;color:#7e2630;font-size:11px;font-weight:800}
+.pause-alert{background:#bf1729;color:#fff;border-radius:14px;padding:14px}
+.pause-alert>svg{display:block;margin-bottom:5px}
+.pause-alert h2{margin:0 0 3px;font-size:20px;line-height:1.35}
 .pause-alert p{margin:0;font-size:12px;line-height:1.5;color:#fff0f2}
-.pause-reasons{display:grid;gap:6px;margin:13px 0 7px}
+.pause-reasons{display:grid;gap:5px;margin:10px 0 6px}
 .pause-reasons strong{display:block;border-left:3px solid #ffd8dd;padding-left:9px;font-size:12px;line-height:1.5}
 .pause-alert small{font-size:11px;line-height:1.5;color:#fff1f3}
-.pause-transfer{display:flex;justify-content:space-between;align-items:center;gap:8px;background:#edf3f0;border-radius:12px;padding:13px;margin:12px 0}
+.pause-transfer{display:flex;justify-content:space-between;align-items:center;gap:8px;background:#edf3f0;border-radius:12px;padding:10px 12px;margin:9px 0}
 .pause-transfer>div{display:grid;gap:2px;min-width:0}
-.pause-transfer strong{font-size:22px;line-height:1.2;font-variant-numeric:tabular-nums}
+.pause-transfer strong{font-size:20px;line-height:1.2;font-variant-numeric:tabular-nums}
 .pause-transfer span{font-size:11px;color:#637a73;overflow-wrap:anywhere}
 .pause-badge{flex:none;border:1px solid #c6dcd2;background:#fff;color:#426c5e!important;border-radius:20px;padding:5px 8px;font-size:10px!important;font-weight:800}
-.pause-dialog .zone-status{margin-bottom:12px;padding:9px 11px;font-size:11px}
-.pause-contact{display:grid;gap:3px;border-top:1px solid #e9efec;padding-top:11px;font-size:12px}
+.pause-dialog .zone-status{margin-bottom:9px;padding:8px 10px;font-size:11px}
+.pause-contact{display:grid;gap:3px;border-top:1px solid #e9efec;padding-top:8px;font-size:12px}
 .pause-contact>span{color:#60756e;font-size:11px;line-height:1.5}
-.pause-wait{display:flex;gap:9px;align-items:flex-start;background:#fff1f2;color:#8f1725;border-radius:11px;padding:11px 12px;margin-top:12px}
+.pause-wait{display:flex;gap:9px;align-items:flex-start;background:#fff1f2;color:#8f1725;border-radius:11px;padding:9px 11px;margin-top:9px}
 .pause-wait>svg{flex:none;margin-top:1px}
 .pause-wait>div{display:grid;gap:1px}
 .pause-wait strong{font-size:12px}
 .pause-wait small{font-size:10px;line-height:1.5}
 .pause-no-response{display:grid;gap:2px;margin-top:10px;padding:10px 12px;border-left:3px solid #b21526;background:#fff5f6;color:#8f1725;font-size:11px;line-height:1.5}
-.pause-actions{display:grid;gap:8px;margin-top:13px}
+.pause-actions{display:grid;gap:6px;margin-top:10px}
 .pause-actions .primary,.pause-actions .outline{min-height:46px}
 .pause-stop{border-color:#afc9bd}
 .pause-continue{display:block;width:100%;min-height:44px;border:0;border-radius:9px;background:transparent;color:#5d6d68;font-size:11px;font-weight:700;text-align:center;text-decoration:underline;text-underline-offset:3px;padding:10px}
@@ -99,4 +101,4 @@
 .confirm-stop{background:#b21526;border-color:#b21526;box-shadow:none}
 .confirm-stop:not(:disabled):hover{background:#971323}
 .confirm-proceed{margin-top:7px;color:#5d6d68}
-@media(max-width:359px){.pause-backdrop{padding:8px}.pause-dialog{padding:14px;max-height:calc(100dvh - 16px)}.pause-transfer strong{font-size:20px}}
+@media(max-width:359px){.pause-backdrop{padding:12px}.pause-dialog{padding:13px;max-height:calc(100dvh - 48px)}.pause-transfer strong{font-size:19px}}
