@@ -47,9 +47,10 @@ test('Off skips additional TrustGuard pause', () => {
   assert.equal(result.contactNotification, 'none')
 })
 
-test('Warn cannot be self-confirmed until the full minute has passed', () => {
+test('Warn cannot be self-confirmed until the full two minutes have passed', () => {
   const result = evaluate('limit-only')
   const eligibleAt = Date.parse(result.warnEligibleAt)
+  assert.equal(WARN_MINIMUM_WAIT_MS, 120_000)
   assert.equal(eligibleAt - Date.parse(reviewStartedAt), WARN_MINIMUM_WAIT_MS)
   const base = { evaluation: result, level: 'warn', contactResponse: { kind: 'no-response' }, recoveryState: 'not-started' }
   assert.equal(canSenderConfirm({ ...base, now: new Date(eligibleAt - 1).toISOString() }), false)
@@ -70,4 +71,23 @@ test('the high-value normal scenario still triggers the chosen limit without cla
   const result = evaluate('ordinary-high-value')
   assert.deepEqual(result.reasons, ['monthly-limit'])
   assert.equal(result.monthlyTotalBaht, 22_000)
+})
+
+test('Trusted Zone inside cannot clear a limit warning', () => {
+  const item = scenario('limit-only')
+  const result = evaluateTransfer({ ...item, transfer: { ...item.transfer, zoneStatus: 'inside' }, reviewStartedAt })
+  assert.equal(result.action, 'smart-pause')
+  assert.deepEqual(result.reasons, ['monthly-limit'])
+})
+
+test('unavailable location does not add a warning reason', () => {
+  const item = scenario('limit-only')
+  const result = evaluateTransfer({ ...item, transfer: { ...item.transfer, zoneStatus: 'unavailable' }, reviewStartedAt })
+  assert.deepEqual(result.reasons, ['monthly-limit'])
+})
+
+test('outside Trusted Zone still follows the existing demo pause rule', () => {
+  const item = scenario('limit-only')
+  const result = evaluateTransfer({ ...item, transfer: { ...item.transfer, zoneStatus: 'outside' }, reviewStartedAt })
+  assert.deepEqual(result.reasons, ['monthly-limit', 'outside-trusted-zone'])
 })

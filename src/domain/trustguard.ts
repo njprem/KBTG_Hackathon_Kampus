@@ -93,7 +93,7 @@ export interface DemoScenario {
 }
 
 const BANGKOK_TIMEZONE = "Asia/Bangkok";
-export const WARN_MINIMUM_WAIT_MS = 60_000;
+export const WARN_MINIMUM_WAIT_MS = 120_000;
 
 function timestamp(value: string): number {
   const parsed = Date.parse(value);
@@ -212,7 +212,7 @@ const demoSender = { senderName: "พลอย", sourceMaskedAccount: "•• 48
 export const PROTOTYPE_SCENARIOS: readonly DemoScenario[] = [
   {
     id: "limit-only",
-    label: "ยอดโอนถึงวงเงิน",
+    label: "ค่าจองสินค้า · ฿18,000",
     description: "โอน ฿18,000 ให้ผู้รับที่เฝ้าดู โดยไม่มีสัญญาณความเสี่ยงของบัญชี",
     settings: demoSettings,
     history: [],
@@ -228,7 +228,7 @@ export const PROTOTYPE_SCENARIOS: readonly DemoScenario[] = [
   },
   {
     id: "split-transfers",
-    label: "แบ่งโอนหลายครั้ง",
+    label: "ค่าจองสินค้า · ฿6,000",
     description: "ครั้งที่สามของการโอน ฿6,000 ในเดือนเดียวกัน ทำให้ยอดสะสมถึง ฿18,000",
     settings: demoSettings,
     history: [
@@ -241,13 +241,13 @@ export const PROTOTYPE_SCENARIOS: readonly DemoScenario[] = [
       ...demoSender,
       recipient: { id: "niran", name: "นิรันดร์", maskedAccount: "•• 6392", watchStatus: "watched", risk: "unknown" },
       amountBaht: 6_000,
-      purpose: "ค่าจองสินค้า (ครั้งที่ 3)",
+      purpose: "ค่าจองสินค้า",
       zoneStatus: "inside",
     },
   },
   {
     id: "ordinary-high-value",
-    label: "รายการปกติมูลค่าสูง",
+    label: "ซื้อแล็ปท็อป · ฿22,000",
     description: "ซื้อแล็ปท็อป ฿22,000 จริง แต่ยังต้องผ่านการทบทวนตามวงเงินที่ตั้งไว้",
     settings: demoSettings,
     history: [],

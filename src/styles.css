@@ -15,3 +15,44 @@
   .phone-shell{height:min(850px,calc(100dvh - 70px));min-height:0;overflow:hidden}
   .screen-body{min-height:0}
 }
+
+/* Urgent transfer states are deliberately distinct from ordinary banking screens. */
+.danger-hero{background:#bf1729;color:#fff;border-radius:18px;padding:22px 20px;margin:0 0 15px;box-shadow:0 12px 24px #8e0e2033}
+.danger-hero>svg{display:block;margin-bottom:11px}
+.danger-hero>span{font-size:12px;font-weight:800;letter-spacing:.3px}
+.danger-hero h1{font-size:23px;line-height:1.35;margin:5px 0 6px}
+.danger-hero p{font-size:12px;line-height:1.6;margin:0;color:#fff1f2}
+.risk-card{border-color:#edb5bb}
+.risk-card h2,.risk-card .reason{color:#a41324}
+.wait-card{background:#fff0f1;color:#811020;border:1px solid #f0bfc5}
+.urgent-notice{display:flex;gap:11px;background:#a81022;color:#fff;border-radius:14px;padding:16px;margin-top:14px;line-height:1.5}
+.urgent-notice>svg{flex:none;margin-top:1px}
+.urgent-notice strong{font-size:13px}
+.urgent-notice p{margin:5px 0;font-size:12px}
+.urgent-notice small{font-size:11px;color:#ffebed}
+.contact-money small{display:block;font-size:11px;font-weight:500;color:#667a74;letter-spacing:0;margin-top:3px}
+.confirm-backdrop{position:fixed;inset:0;z-index:100;background:#170306a8;display:grid;place-items:center;padding:18px}
+.confirm-dialog{width:min(100%,430px);max-height:calc(100dvh - 36px);overflow:auto;background:#fff;border-radius:20px;padding:23px;box-shadow:0 25px 70px #1403055e;color:#17312f}
+.confirm-dialog>svg{color:#b21526;background:#ffe4e7;border-radius:12px;padding:5px;width:46px;height:46px}
+.confirm-dialog h2{font-size:20px;line-height:1.35;margin:14px 0 8px;color:#971323}
+.confirm-dialog p{font-size:13px;line-height:1.7;margin:0 0 15px}
+.confirm-dialog p strong{display:inline-block;margin-top:8px;color:#971323}
+.confirm-summary{border:1px solid #edb5bb;background:#fff4f5;border-radius:11px;padding:11px 13px;margin-bottom:18px}
+.confirm-summary span,.confirm-summary strong{display:block;font-size:12px}
+.confirm-summary span{color:#971323;font-weight:800;margin-bottom:3px}
+.confirm-dialog .outline{margin-top:9px}
+.confirm-proceed{border-color:#b21526;color:#971323}
+.confirm-proceed:hover{background:#fff4f5}
+.zone-status{display:flex;align-items:center;gap:9px;border:1px solid #d5e7df;background:#edf6f2;color:#315d51;border-radius:12px;padding:12px 14px;margin-bottom:13px;font-size:12px;font-weight:700;line-height:1.5}
+.zone-status>svg{flex:none}
+.zone-status>span{flex:1}
+.zone-status small{font-size:10px;color:#60786f;font-weight:600}
+.zone-status.outside{background:#fff1f2;border-color:#eab8be;color:#9b1727}
+.zone-status.unavailable{background:#f0f3f2;border-color:#dce5e1;color:#5c7069}
+.primary.concern-action{background:#b21526;border-color:#b21526;color:#fff;box-shadow:0 7px 12px #8e0e2026}
+.primary.concern-action:not(:disabled):hover{background:#971323;border-color:#971323}
+.contact-zone-alert{display:flex;align-items:flex-start;gap:10px;border:1px solid #eab8be;background:#fff1f2;color:#971323;border-radius:12px;padding:13px 14px;margin-bottom:13px;line-height:1.5}
+.contact-zone-alert>svg{flex:none;margin-top:2px}
+.contact-zone-alert span{display:grid;gap:3px}
+.contact-zone-alert strong{font-size:12px}
+.contact-zone-alert small{font-size:11px;color:#74434a}
