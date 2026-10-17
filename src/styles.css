@@ -56,3 +56,6 @@
 .contact-zone-alert span{display:grid;gap:3px}
 .contact-zone-alert strong{font-size:12px}
 .contact-zone-alert small{font-size:11px;color:#74434a}
+.large-input input::placeholder{color:#9aaca6}
+.amount-clear{width:44px;height:44px;flex:none;display:grid;place-items:center;border:0;border-radius:10px;background:transparent;color:#607970}
+.amount-clear:hover{background:#eaf3ef}

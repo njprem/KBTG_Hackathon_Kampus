@@ -21,12 +21,13 @@ const zoneLabels: Record<TrustedZoneStatus, string> = {
 
 function App() {
   const mainRef = useRef<HTMLElement>(null)
+  const amountRef = useRef<HTMLInputElement>(null)
   const confirmRef = useRef<HTMLButtonElement>(null)
   const continueRef = useRef<HTMLButtonElement>(null)
   const confirmWasOpen = useRef(false)
   const [screen, setScreen] = useState<Screen>('home')
   const [scenario, setScenario] = useState<DemoScenario>(firstScenario)
-  const [amountBaht, setAmountBaht] = useState(firstScenario.transfer.amountBaht)
+  const [amountInput, setAmountInput] = useState(String(firstScenario.transfer.amountBaht))
   const [zoneStatus, setZoneStatus] = useState<TrustedZoneStatus>(firstScenario.transfer.zoneStatus)
   const [settings, setSettings] = useState<TrustGuardSettings>({ ...firstScenario.settings })
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null)
@@ -45,6 +46,8 @@ function App() {
     else if (confirmWasOpen.current && screen === 'pause') continueRef.current?.focus()
     confirmWasOpen.current = showWarnConfirm
   }, [showWarnConfirm, screen])
+  const amountBaht = Number(amountInput)
+  const amountIsValid = amountInput !== '' && Number.isSafeInteger(amountBaht) && amountBaht > 0 && amountBaht <= 1_000_000
   const transfer = useMemo(() => ({ ...scenario.transfer, amountBaht, zoneStatus }), [scenario, amountBaht, zoneStatus])
   const eligibleAt = evaluation?.warnEligibleAt ? Date.parse(evaluation.warnEligibleAt) : 0
   const secondsLeft = Math.max(0, Math.ceil((eligibleAt - nowMs) / 1000))
@@ -52,11 +55,11 @@ function App() {
   const mayConfirm = evaluation ? canSenderConfirm({ evaluation, level: settings.level, now: effectiveNow, contactResponse, recoveryState }) : false
 
   function chooseScenario(item: DemoScenario) {
-    setScenario(item); setAmountBaht(item.transfer.amountBaht); setEvaluation(null)
+    setScenario(item); setAmountInput(String(item.transfer.amountBaht)); setEvaluation(null)
     setContactResponse({ kind: 'no-response' }); setRecoveryState('not-started'); setFastForwarded(false); setShowWarnConfirm(false); setScreen('entry')
   }
   function reset() {
-    setScenario(firstScenario); setAmountBaht(firstScenario.transfer.amountBaht); setZoneStatus(firstScenario.transfer.zoneStatus); setSettings({ ...firstScenario.settings })
+    setScenario(firstScenario); setAmountInput(String(firstScenario.transfer.amountBaht)); setZoneStatus(firstScenario.transfer.zoneStatus); setSettings({ ...firstScenario.settings })
     setEvaluation(null); setContactResponse({ kind: 'no-response' }); setRecoveryState('not-started'); setFastForwarded(false); setShowWarnConfirm(false); setScreen('home')
   }
   function evaluate() {
@@ -97,8 +100,8 @@ function App() {
         {screen === 'entry' && <>
           <Steps current={1} /><Heading eyebrow="รายการตัวอย่าง" title="โอนให้ใคร เท่าไร" detail="ใช้เฉพาะผู้รับสมมติที่เตรียมไว้สำหรับการทดลอง" />
           <section className="card"><div className="field-label">จากบัญชี</div><div className="account-row"><span className="account-icon"><CreditCard size={19} /></span><span><strong>บัญชีใช้จ่ายของพลอย</strong><small>บัญชีตัวอย่าง •• 4821</small></span></div><hr /><div className="field-label">ถึงผู้รับ</div><div className="account-row"><span className="avatar">{transfer.recipient.name.slice(0, 1)}</span><span><strong>{transfer.recipient.name}</strong><small>บัญชีสมมติ {transfer.recipient.maskedAccount}</small></span></div></section>
-          <section className="card"><label htmlFor="amount" className="field-label">จำนวนเงิน (บาท)</label><div className="large-input"><span>฿</span><input id="amount" type="number" inputMode="numeric" min="1" max="1000000" step="1" value={amountBaht} onChange={event => setAmountBaht(Number(event.target.value))} /></div><p className="help">วัตถุประสงค์: {transfer.purpose}</p></section>
-          <Actions><button className="primary" disabled={!Number.isSafeInteger(amountBaht) || amountBaht <= 0 || amountBaht > 1_000_000} onClick={() => setScreen('review')}>ตรวจสอบรายการ <ArrowRight size={18} /></button></Actions>
+          <section className="card"><label htmlFor="amount" className="field-label">จำนวนเงิน (บาท)</label><div className="large-input"><span>฿</span><input ref={amountRef} id="amount" type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" placeholder="0" value={amountInput} onChange={event => setAmountInput(event.target.value.replace(/\D/g, ''))} aria-describedby="amount-help" />{amountInput && <button className="amount-clear" type="button" aria-label="ล้างจำนวนเงิน" onClick={() => { setAmountInput(''); amountRef.current?.focus() }}><X size={19} /></button>}</div><p className="help" id="amount-help">{amountInput && !amountIsValid ? 'กรอกจำนวนเต็ม 1–1,000,000 บาท' : `วัตถุประสงค์: ${transfer.purpose}`}</p></section>
+          <Actions><button className="primary" disabled={!amountIsValid} onClick={() => setScreen('review')}>ตรวจสอบรายการ <ArrowRight size={18} /></button></Actions>
         </>}
 
         {screen === 'review' && <>
