@@ -21,6 +21,7 @@ const zoneLabels: Record<TrustedZoneStatus, string> = {
 
 function App() {
   const mainRef = useRef<HTMLElement>(null)
+  const pauseRef = useRef<HTMLDivElement>(null)
   const amountRef = useRef<HTMLInputElement>(null)
   const confirmRef = useRef<HTMLButtonElement>(null)
   const continueRef = useRef<HTMLButtonElement>(null)
@@ -40,7 +41,7 @@ function App() {
   const [showWarnConfirm, setShowWarnConfirm] = useState(false)
 
   useEffect(() => { const timer = window.setInterval(() => setNowMs(Date.now()), 1000); return () => window.clearInterval(timer) }, [])
-  useEffect(() => { mainRef.current?.focus() }, [screen])
+  useEffect(() => { if (screen === 'pause') pauseRef.current?.focus(); else mainRef.current?.focus() }, [screen])
   useEffect(() => {
     if (showWarnConfirm) confirmRef.current?.focus()
     else if (confirmWasOpen.current && screen === 'pause') continueRef.current?.focus()
@@ -53,6 +54,8 @@ function App() {
   const secondsLeft = Math.max(0, Math.ceil((eligibleAt - nowMs) / 1000))
   const effectiveNow = new Date(fastForwarded ? Math.max(nowMs, eligibleAt) : nowMs).toISOString()
   const mayConfirm = evaluation ? canSenderConfirm({ evaluation, level: settings.level, now: effectiveNow, contactResponse, recoveryState }) : false
+  const pauseOpen = screen === 'pause' && evaluation !== null
+  const visibleScreen = pauseOpen ? 'review' : screen
 
   function chooseScenario(item: DemoScenario) {
     setScenario(item); setAmountInput(String(item.transfer.amountBaht)); setEvaluation(null)
@@ -71,10 +74,11 @@ function App() {
     else { setOutcome('demo-confirmed'); setScreen('outcome') }
   }
   function finish(next: Outcome) { setShowWarnConfirm(false); setOutcome(next); setScreen('outcome') }
+  function closePause() { setShowWarnConfirm(false); setScreen('review') }
   function goBack() {
     if (screen === 'entry') setScreen('home')
-    else if (screen === 'review') setScreen('entry')
-    else if (screen === 'pause') setScreen('review')
+    else if (screen === 'review') { setEvaluation(null); setScreen('entry') }
+    else if (screen === 'pause') closePause()
     else if (screen === 'contact' || screen === 'recovery') setScreen('pause')
     else if (screen === 'settings') setScreen(settingsReturn === 'pause' ? 'review' : settingsReturn)
     else setScreen('home')
@@ -83,10 +87,10 @@ function App() {
   const titles: Record<Screen, string> = { home: 'หน้าหลัก', entry: 'โอนเงิน', review: 'ตรวจสอบรายการ', pause: 'Smart Pause', contact: 'มุมคนที่ไว้ใจ', outcome: 'สถานะรายการ', recovery: 'ขอความช่วยเหลือ', settings: 'ตั้งค่า TrustGuard' }
 
   return <div className="site-shell">
-    <div className="phone-shell" inert={showWarnConfirm}>
+    <div className="phone-shell" inert={pauseOpen || showWarnConfirm}>
       <div className="brandbar"><strong><ShieldCheck size={19} /> TrustGuard</strong><span>ต้นแบบสำหรับทดลอง</span></div>
-      <header className="app-header"><button className="icon-button" onClick={screen === 'home' ? undefined : goBack} aria-label="ย้อนกลับ" disabled={screen === 'home'}><ArrowLeft size={20} /></button><strong>{titles[screen]}</strong><button className="icon-button" onClick={reset} aria-label="เริ่มการทดลองใหม่"><RefreshCcw size={18} /></button></header>
-      <main className="screen-body" key={screen} ref={mainRef} tabIndex={-1} aria-label={titles[screen]}>
+      <header className="app-header"><button className="icon-button" onClick={screen === 'home' ? undefined : goBack} aria-label="ย้อนกลับ" disabled={screen === 'home'}><ArrowLeft size={20} /></button><strong>{titles[visibleScreen]}</strong><button className="icon-button" onClick={reset} aria-label="เริ่มการทดลองใหม่"><RefreshCcw size={18} /></button></header>
+      <main className="screen-body" key={visibleScreen} ref={mainRef} tabIndex={-1} aria-label={titles[visibleScreen]}>
         {screen === 'home' && <>
           <div className="intro"><span>สวัสดี พลอย</span></div>
           <section className="balance-card"><div><span><Wallet size={16} /> บัญชีใช้จ่าย</span><small>ข้อมูลจำลอง</small></div><p>ยอดเงินคงเหลือ</p><strong>{formatBaht(28_000)}</strong><footer><span>•• 4821</span><span>เงินเดือนตัวอย่าง ฿28,000</span></footer></section>
@@ -104,21 +108,11 @@ function App() {
           <Actions><button className="primary" disabled={!amountIsValid} onClick={() => setScreen('review')}>ตรวจสอบรายการ <ArrowRight size={18} /></button></Actions>
         </>}
 
-        {screen === 'review' && <>
-          <Steps current={2} /><Heading eyebrow="ก่อนดำเนินการ" title="ตรวจสอบอีกครั้ง" detail="ชื่อผู้รับและจำนวนเงินถูกต้องหรือไม่" />
+        {(screen === 'review' || pauseOpen) && <>
+          <Steps current={pauseOpen ? 3 : 2} /><Heading eyebrow="ก่อนดำเนินการ" title="ตรวจสอบอีกครั้ง" detail="ชื่อผู้รับและจำนวนเงินถูกต้องหรือไม่" />
           <ZoneStatus status={zoneStatus} />
           <section className="card summary"><div className="summary-icon"><Send size={24} /></div><span className="muted">จำนวนเงินที่ต้องการโอน</span><div className="big-money">{formatBaht(amountBaht)}</div><hr /><Row label="จาก" value="บัญชีใช้จ่าย •• 4821" /><Row label="ถึง" value={transfer.recipient.name} /><Row label="บัญชีผู้รับ" value={transfer.recipient.maskedAccount} /><Row label="รายละเอียด" value={transfer.purpose} /></section>
-          <Actions><button className="primary" onClick={evaluate}>ดำเนินการต่อ <ArrowRight size={18} /></button><button className="text-button" onClick={() => setScreen('entry')}>แก้ไขรายการ</button></Actions>
-        </>}
-
-        {screen === 'pause' && evaluation && <>
-          <Steps current={3} /><div className="danger-hero"><ShieldAlert size={32} /><span>พบรายการที่ต้องตรวจสอบ</span><h1>รายการนี้ยังไม่ถูกโอน</h1><div className="danger-hero-reasons">{evaluation.reasons.map(reason => <strong key={reason}>{reason === 'monthly-limit' ? `ยอดโอนสะสมเดือนนี้ ${formatBaht(evaluation.monthlyTotalBaht)} ถึง Trusted Limit ${formatBaht(evaluation.monthlyLimitBaht)} ที่คุณตั้งไว้` : reasonLabel(reason)}</strong>)}</div><p>{transfer.recipient.risk === 'unknown' ? 'เรายังไม่มีข้อมูลความเสี่ยงของบัญชีผู้รับ โปรดตรวจสอบรายละเอียดก่อนตัดสินใจ' : 'โปรดตรวจสอบรายละเอียดก่อนตัดสินใจ'}</p></div>
-          <ZoneStatus status={zoneStatus} />
-          <section className="card risk-card"><h2>รายละเอียดรายการ</h2><Row label="ยอดโอนครั้งนี้" value={formatBaht(amountBaht)} /><Row label="ยอดสะสมเดือนนี้" value={formatBaht(evaluation.monthlyTotalBaht)} /><Row label="Trusted Limit" value={formatBaht(evaluation.monthlyLimitBaht)} /></section>
-          <section className="card contact-panel"><div className="contact-head"><span className="contact-icon"><Users size={20} /></span><div><strong>{settings.level === 'warn' ? 'Trusted Contact · ขอความเห็น' : 'Trusted Contact · รอการอนุมัติ'}</strong><small>{settings.trustedContact.name} · {settings.trustedContact.relationship}</small></div></div><div className="contact-status"><Bell size={15} /> {evaluation.contactNotification === 'none' ? 'ยังไม่ได้รับความยินยอม จึงไม่มีการแจ้งเตือน' : contactResponse.kind === 'no-response' ? 'ยังไม่มีคำตอบในตัวอย่างนี้' : contactResponse.kind === 'warn-advice' ? contactResponse.advice === 'concern' ? `${settings.trustedContact.name} กังวลและขอให้หยุดโอนแล้วคุยกันก่อน` : `${settings.trustedContact.name} ยังไม่พบข้อกังวลจากข้อมูลที่เห็น` : `${settings.trustedContact.name} ${contactResponse.decision === 'approved' ? 'อนุมัติ' : 'ไม่อนุมัติ'}รายการในตัวอย่าง`}</div>{evaluation.contactNotification !== 'none' && <button className="outline" onClick={() => setScreen('contact')}><UserRoundCheck size={17} /> เปิดมุมของ {settings.trustedContact.name} <ArrowRight size={16} /></button>}</section>
-          <div className="wait-card">{settings.level === 'warn' ? <Clock3 size={20} /> : <LockKeyhole size={20} />}<div><strong>{settings.level === 'warn' ? fastForwarded ? 'ข้ามเวลารอสำหรับการทดลองแล้ว' : secondsLeft > 0 ? `รออีก ${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, '0')} นาที` : 'ครบเวลารอ 2 นาทีแล้ว' : 'ต้องได้รับอนุมัติก่อน'}</strong><p>{settings.level === 'warn' ? 'ครบเวลาแล้วต้องกดยืนยันเอง ไม่มีการโอนอัตโนมัติ' : 'หากติดต่อไม่ได้ ให้ขอความช่วยเหลือผ่านเส้นทางแยก'}</p></div></div>
-          {settings.level === 'warn' && mayConfirm && contactResponse.kind === 'no-response' && <div className="urgent-notice" role="alert"><ShieldAlert size={23} /><div><strong>ยังไม่ได้รับความเห็นจากคนที่คุณไว้ใจ</strong><p>เราแนะนำให้หยุดการโอนไว้ก่อน</p><small>โปรดจำไว้ว่า มิจฉาชีพมักเร่งให้โอนเงินทันที</small></div></div>}
-          <Actions>{settings.level === 'warn' && secondsLeft > 0 && !fastForwarded && <button className="demo-link" onClick={() => setFastForwarded(true)}>ข้ามเวลารอ 2 นาที (เฉพาะการทดลอง)</button>}<button ref={continueRef} className="primary" disabled={!mayConfirm} onClick={() => settings.level === 'warn' ? setShowWarnConfirm(true) : finish('contact-approved')}>{settings.level === 'warn' ? 'ดำเนินการต่อ' : 'ดำเนินการต่อหลังได้รับอนุมัติ'} <ArrowRight size={18} /></button>{settings.level === 'approval-required' && !(contactResponse.kind === 'approval-decision' && contactResponse.decision === 'approved') && <button className="outline" onClick={() => setScreen('recovery')}><HelpCircle size={17} /> {contactResponse.kind === 'approval-decision' && contactResponse.decision === 'rejected' ? 'ไม่ได้รับอนุมัติ? ขอให้ช่วยตรวจสอบ' : 'ติดต่อไม่ได้? ขอให้ช่วยตรวจสอบ'}</button>}<button className="text-button danger" onClick={() => finish('cancelled')}>ยกเลิกรายการ</button></Actions>
+          <Actions><button className="primary" onClick={evaluation?.action === 'smart-pause' ? () => setScreen('pause') : evaluate}>{evaluation?.action === 'smart-pause' ? 'กลับไปดูคำเตือน' : 'ดำเนินการต่อ'} <ArrowRight size={18} /></button><button className="text-button" onClick={() => { setEvaluation(null); setScreen('entry') }}>แก้ไขรายการ</button></Actions>
         </>}
 
         {screen === 'contact' && evaluation && <>
@@ -154,7 +148,25 @@ function App() {
       </main>
       <nav className="bottom-nav" aria-label="เมนูหลัก"><button className={screen === 'home' ? 'active' : ''} onClick={() => setScreen('home')}><Home size={20} />หน้าหลัก</button><button className={['entry', 'review', 'pause', 'contact', 'outcome', 'recovery'].includes(screen) ? 'active' : ''} onClick={() => chooseScenario(scenario)}><Send size={20} />โอนเงิน</button><button className={screen === 'settings' ? 'active' : ''} onClick={() => openSettings(screen)}><Settings2 size={20} />ตั้งค่า</button></nav>
     </div>
-    {showWarnConfirm && <div className="confirm-backdrop" role="presentation"><div className="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-description" onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); setShowWarnConfirm(false) } if (event.key === 'Tab') { const buttons = Array.from(event.currentTarget.querySelectorAll('button')); const first = buttons[0]; const last = buttons[buttons.length - 1]; if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() } else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() } } }}><ShieldAlert size={32} /><h2 id="confirm-title">ยังต้องการดำเนินการต่อหรือไม่?</h2><p id="confirm-description">{contactResponse.kind === 'no-response' ? 'ตอนนี้คุณยังไม่ได้รับความเห็นจากคนที่ไว้ใจ เราขอแนะนำให้หยุดการโอนไว้ก่อน' : contactResponse.kind === 'warn-advice' && contactResponse.advice === 'concern' ? `${settings.trustedContact.name} กังวลและขอให้หยุดโอนแล้วคุยกันก่อน` : 'ตรวจสอบชื่อผู้รับและจำนวนเงินอีกครั้งก่อนตัดสินใจ'}<br /><strong>มิจฉาชีพมักเร่งให้โอนเงินทันที</strong></p><div className="confirm-summary"><span>รายการนี้ยังไม่ถูกโอน</span><strong>{formatBaht(amountBaht)} · {transfer.recipient.name}</strong></div><button ref={confirmRef} className="primary" onClick={() => finish('cancelled')}>หยุดการโอน</button><button className="outline confirm-proceed" onClick={() => { if (mayConfirm && settings.level === 'warn') finish('warn-manually-confirmed') }}>ยืนยันดำเนินการต่อ (จำลอง)</button><button className="text-button" onClick={() => setShowWarnConfirm(false)}>กลับไปตรวจสอบ</button></div></div>}
+    {pauseOpen && evaluation && <div className="pause-backdrop" inert={showWarnConfirm}>
+      <div className="pause-dialog" ref={pauseRef} tabIndex={-1} role="alertdialog" aria-modal="true" aria-labelledby="pause-title" aria-describedby="pause-description" onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); closePause() } else trapDialogTab(event) }}>
+        <div className="pause-topline"><span>Smart Pause · รายการที่ต้องทบทวน</span><button type="button" className="icon-button" onClick={closePause} aria-label="กลับไปตรวจสอบรายการ"><X size={19} /></button></div>
+        <div className="pause-alert"><ShieldAlert size={30} /><h2 id="pause-title">รายการนี้ยังไม่ถูกโอน</h2><p id="pause-description">พบรายการที่ควรหยุดทบทวนก่อนตัดสินใจ</p><div className="pause-reasons">{evaluation.reasons.map(reason => <strong key={reason}>{reason === 'monthly-limit' ? `ยอดโอนสะสมเดือนนี้ ${formatBaht(evaluation.monthlyTotalBaht)} ถึง Trusted Limit ${formatBaht(evaluation.monthlyLimitBaht)} ที่คุณตั้งไว้` : reasonLabel(reason)}</strong>)}</div>{transfer.recipient.risk === 'unknown' && <small>เรายังไม่มีข้อมูลความเสี่ยงของบัญชีผู้รับ</small>}</div>
+        <div className="pause-transfer"><div><strong>{formatBaht(amountBaht)}</strong><span>{transfer.recipient.name} · {transfer.recipient.maskedAccount}</span></div><span className="pause-badge">ยังไม่ถูกโอน</span></div>
+        <ZoneStatus status={zoneStatus} />
+        <div className="pause-contact"><strong>Trusted Contact · {settings.trustedContact.name}</strong><span>{evaluation.contactNotification === 'none' ? 'ยังไม่ได้รับความยินยอม จึงไม่มีการแจ้งเตือน' : contactResponse.kind === 'no-response' ? 'ส่งคำขอจำลองแล้ว · ยังไม่ได้รับคำตอบ' : contactResponse.kind === 'warn-advice' ? contactResponse.advice === 'concern' ? 'คนที่ไว้ใจกังวลและขอให้หยุดโอนแล้วคุยกันก่อน' : 'คนที่ไว้ใจยังไม่พบข้อกังวลจากข้อมูลที่เห็น' : contactResponse.decision === 'approved' ? 'คนที่ไว้ใจอนุมัติรายการจำลอง' : 'คนที่ไว้ใจไม่อนุมัติรายการ'}</span></div>
+        <div className="pause-wait">{settings.level === 'warn' ? <Clock3 size={18} /> : <LockKeyhole size={18} />}<div><strong>{settings.level === 'warn' ? fastForwarded ? 'ข้ามเวลารอสำหรับการทดลองแล้ว' : secondsLeft > 0 ? `รออีก ${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, '0')} นาที` : 'ครบเวลารอ 2 นาทีแล้ว' : 'ต้องได้รับอนุมัติจาก Trusted Contact'}</strong><small>{settings.level === 'warn' ? 'ครบเวลาแล้วต้องกดยืนยันเอง ไม่มีการโอนอัตโนมัติ' : 'หากติดต่อไม่ได้ ให้ใช้เส้นทางขอความช่วยเหลือแยก'}</small></div></div>
+        {settings.level === 'warn' && mayConfirm && contactResponse.kind === 'no-response' && <div className="pause-no-response" role="alert"><strong>ยังไม่ได้รับความเห็นจากคนที่คุณไว้ใจ</strong><span>เราแนะนำให้หยุดการโอนไว้ก่อน</span></div>}
+        <div className="pause-actions">
+          {evaluation.contactNotification !== 'none' && <button type="button" className="primary" onClick={() => setScreen('contact')}><UserRoundCheck size={17} /> เปิดมุมคนที่ไว้ใจ (จำลอง)</button>}
+          <button type="button" className="outline pause-stop" onClick={() => finish('cancelled')}>หยุดการโอนไว้ก่อน</button>
+          {settings.level === 'approval-required' && !(contactResponse.kind === 'approval-decision' && contactResponse.decision === 'approved') && <button type="button" className="outline" onClick={() => setScreen('recovery')}><HelpCircle size={17} /> ขอให้ช่วยตรวจสอบผ่านเส้นทางแยก</button>}
+          <button type="button" ref={continueRef} className="pause-continue" disabled={!mayConfirm} onClick={() => settings.level === 'warn' ? setShowWarnConfirm(true) : finish('contact-approved')}>{settings.level === 'warn' ? 'ยืนยันดำเนินการต่อ' : 'ดำเนินการต่อหลังได้รับอนุมัติ'}</button>
+          {settings.level === 'warn' && secondsLeft > 0 && !fastForwarded && <button type="button" className="demo-link" onClick={() => setFastForwarded(true)}>ข้ามเวลารอ 2 นาที (เฉพาะการทดลอง)</button>}
+        </div>
+      </div>
+    </div>}
+    {showWarnConfirm && <div className="confirm-backdrop" role="presentation"><div className="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-description" onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); setShowWarnConfirm(false) } else trapDialogTab(event) }}><button type="button" className="confirm-close icon-button" onClick={() => setShowWarnConfirm(false)} aria-label="กลับไปดูคำเตือน"><X size={19} /></button><ShieldAlert size={32} /><h2 id="confirm-title">ยังต้องการดำเนินการต่อหรือไม่?</h2><p id="confirm-description">{contactResponse.kind === 'no-response' ? 'ตอนนี้คุณยังไม่ได้รับความเห็นจากคนที่ไว้ใจ เราขอแนะนำให้หยุดการโอนไว้ก่อน' : contactResponse.kind === 'warn-advice' && contactResponse.advice === 'concern' ? `${settings.trustedContact.name} กังวลและขอให้หยุดโอนแล้วคุยกันก่อน` : 'ตรวจสอบชื่อผู้รับและจำนวนเงินอีกครั้งก่อนตัดสินใจ'}<br /><strong>มิจฉาชีพมักเร่งให้โอนเงินทันที</strong></p><div className="confirm-summary"><span>รายการนี้ยังไม่ถูกโอน</span><strong>{formatBaht(amountBaht)} · {transfer.recipient.name}</strong></div><button ref={confirmRef} className="primary confirm-stop" onClick={() => finish('cancelled')}>หยุดการโอน</button><button className="pause-continue confirm-proceed" onClick={() => { if (mayConfirm && settings.level === 'warn') finish('warn-manually-confirmed') }}>ยืนยันดำเนินการต่อ (จำลอง)</button></div></div>}
   </div>
 }
 
@@ -164,4 +176,12 @@ function Row({ label, value }: { label: string; value: string }) { return <div c
 function ZoneStatus({ status }: { status: TrustedZoneStatus }) { return <div className={`zone-status ${status}`}><MapPin size={18} /><span>{zoneLabels[status]}</span><small>จำลอง</small></div> }
 function Notice({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) { return <div className="notice">{icon}<span>{children}</span></div> }
 function Actions({ children }: { children: React.ReactNode }) { return <div className="actions">{children}</div> }
+function trapDialogTab(event: React.KeyboardEvent<HTMLDivElement>) {
+  if (event.key !== 'Tab') return
+  const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)'))
+  const first = buttons[0]
+  const last = buttons[buttons.length - 1]
+  if (event.shiftKey && (document.activeElement === first || document.activeElement === event.currentTarget)) { event.preventDefault(); last?.focus() }
+  else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+}
 export default App
