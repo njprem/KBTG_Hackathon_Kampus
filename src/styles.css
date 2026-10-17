@@ -22,6 +22,8 @@
 .danger-hero>span{font-size:12px;font-weight:800;letter-spacing:.3px}
 .danger-hero h1{font-size:23px;line-height:1.35;margin:5px 0 6px}
 .danger-hero p{font-size:12px;line-height:1.6;margin:0;color:#fff1f2}
+.danger-hero-reasons{display:grid;gap:7px;margin:13px 0 11px}
+.danger-hero-reasons strong{display:block;border-left:3px solid #ffd8dd;padding-left:10px;font-size:14px;line-height:1.5;color:#fff}
 .risk-card{border-color:#edb5bb}
 .risk-card h2,.risk-card .reason{color:#a41324}
 .wait-card{background:#fff0f1;color:#811020;border:1px solid #f0bfc5}
