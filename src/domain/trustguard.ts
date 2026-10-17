@@ -200,6 +200,28 @@ export function canSenderConfirm(input: {
     contactResponse.decision === "approved";
 }
 
+/** Sender self-check shown during Smart Pause. Answers inform warnings; they never block or release a transfer. */
+export type ScamCheckQuestion = "on-call" | "secrecy" | "deadline";
+export type ScamCheckAnswers = Record<ScamCheckQuestion, "yes" | "no" | null>;
+export const SCAM_CHECK_QUESTIONS: readonly ScamCheckQuestion[] = ["on-call", "secrecy", "deadline"];
+export const EMPTY_SCAM_CHECK: ScamCheckAnswers = { "on-call": null, secrecy: null, deadline: null };
+
+/** Questions answered "yes", in display order. Unanswered questions are not signals. */
+export function scamCheckSignals(answers: ScamCheckAnswers): ScamCheckQuestion[] {
+  return SCAM_CHECK_QUESTIONS.filter((question) => answers[question] === "yes");
+}
+
+/** Sender-only context: this transfer as a whole-number share of the demo monthly salary. */
+export function salaryShare(amountBaht: number, monthlySalaryBaht: number): number {
+  if (!validBaht(amountBaht) || !validBaht(monthlySalaryBaht) || monthlySalaryBaht === 0) {
+    throw new Error("Amount and salary must be whole baht; salary must be positive");
+  }
+  return Math.round((amountBaht / monthlySalaryBaht) * 100);
+}
+
+export const DEMO_MONTHLY_SALARY_BAHT = 28_000;
+export const DEMO_BALANCE_BAHT = 28_000;
+
 const demoContact = { name: "มิน", relationship: "เพื่อนที่ไว้ใจ", consented: true };
 const demoSettings: TrustGuardSettings = {
   level: "warn",

@@ -83,7 +83,7 @@
 .pause-badge{flex:none;border:1px solid #c6dcd2;background:#fff;color:#426c5e!important;border-radius:20px;padding:5px 8px;font-size:10px!important;font-weight:800}
 .pause-dialog .zone-status{margin-bottom:9px;padding:8px 10px;font-size:11px}
 .pause-contact{display:grid;gap:3px;border-top:1px solid #e9efec;padding-top:8px;font-size:12px}
-.pause-contact>span{color:#60756e;font-size:11px;line-height:1.5}
+.pause-contact>div>span{color:#60756e;font-size:11px;line-height:1.5}
 .pause-wait{display:flex;gap:9px;align-items:flex-start;background:#fff1f2;color:#8f1725;border-radius:11px;padding:9px 11px;margin-top:9px}
 .pause-wait>svg{flex:none;margin-top:1px}
 .pause-wait>div{display:grid;gap:1px}
@@ -123,9 +123,61 @@
 .pause-triggered>svg{flex:none;width:46px;height:46px}
 .pause-triggered>span{font-size:18px;font-weight:800;letter-spacing:.3px;text-transform:uppercase;line-height:1.2}
 
-/* Shake once when Smart Pause opens; skipped for people who prefer reduced motion. */
+/* Smart Pause alarm motion. */
 @keyframes pause-shake{0%,100%{transform:translateX(0)}10%,50%,90%{transform:translateX(-9px) rotate(-1deg)}30%,70%{transform:translateX(9px) rotate(1deg)}}
 @keyframes pause-icon-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
-.pause-dialog{animation:pause-shake .6s ease-in-out .05s 1}
-.pause-triggered>svg{animation:pause-icon-pulse .6s ease-in-out .05s 2}
-@media(prefers-reduced-motion:reduce){.pause-dialog,.pause-triggered>svg{animation:none}}
+
+/* Alarm → calm: bright red with a shake for the first two seconds, then a steadier deep red. */
+.pause-dialog{animation:none;transition:background-color .9s ease}
+.pause-dialog.alarm{animation:pause-shake .6s ease-in-out .05s 1}
+.pause-dialog.calm{background:#8e1422}
+.pause-triggered>svg{animation:none}
+.pause-dialog.alarm .pause-triggered>svg{animation:pause-icon-pulse .6s ease-in-out .05s 2}
+.pause-calm-line{margin:12px 0 0;padding:9px 11px;border-radius:10px;background:#ffffff1f;font-size:13px!important;font-weight:700;color:#fff!important;opacity:0;transform:translateY(4px);transition:opacity .6s ease,transform .6s ease}
+.pause-dialog.calm .pause-calm-line{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){.pause-dialog.alarm,.pause-dialog.alarm .pause-triggered>svg{animation:none}.pause-dialog,.pause-calm-line{transition:none}}
+
+/* Sender-only cost of this transfer. */
+.pause-impact{margin:-3px 0 9px;padding:0 2px;font-size:12px;line-height:1.5;color:#8f1725}
+.pause-impact strong{font-size:14px}
+
+/* Trusted contact identity. */
+.contact-avatar{flex:none;display:grid;place-items:center;width:38px;height:38px;border-radius:50%;font-size:16px;font-weight:800;color:#fff}
+.contact-avatar.tone-a{background:#7a4dd8}
+.contact-avatar.tone-b{background:#d0602a}
+.notice .contact-avatar{width:28px;height:28px;font-size:13px}
+.pause-contact{display:flex;align-items:center;gap:10px}
+.pause-contact>div{display:grid;gap:2px;min-width:0}
+
+/* Self-check while waiting. */
+.scam-check{display:grid;gap:8px;margin-top:10px;padding:11px;border:1px solid #e3e9e6;border-radius:12px}
+.scam-check>strong{font-size:13px}
+.scam-question{display:grid;gap:5px;font-size:12px;line-height:1.45}
+.yes-no{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.yes-no button{min-height:40px;border:1px solid #cddcd6;border-radius:9px;background:#fff;color:#17312f;font-size:13px;font-weight:700}
+.yes-no button.on.yes{background:#bf1729;border-color:#bf1729;color:#fff}
+.yes-no button.on.no{background:#0b5d58;border-color:#0b5d58;color:#fff}
+.scam-alert{display:grid;gap:2px;padding:10px 12px;border-radius:10px;background:#bf1729;color:#fff;font-size:12px;line-height:1.5}
+.scam-alert strong{font-size:14px}
+
+/* Callback request and stronger stop once a scam signal is reported. */
+.pause-actions .callback-urgent{order:-2;background:#bf1729;border-color:#bf1729}
+.pause-actions .stop-strong{order:-1;background:#17312f;border-color:#17312f}
+.callback-status{display:flex;align-items:center;gap:9px;min-height:46px;padding:9px 12px;border-radius:10px;background:#eef6f3;color:#0b5d58;font-size:12px;font-weight:700;line-height:1.45}
+.callback-status.calling{order:-2;background:#0b5d58;color:#fff;animation:callback-ring 1.2s ease-in-out infinite}
+@keyframes callback-ring{50%{box-shadow:0 0 0 5px #0b5d5833}}
+@media(prefers-reduced-motion:reduce){.callback-status.calling{animation:none}}
+.contact-callback{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;align-items:start;margin-bottom:12px;padding:12px;border-radius:12px;background:#bf1729;color:#fff}
+.contact-callback small{display:block;font-size:11px;line-height:1.5;color:#ffe4e7}
+.contact-callback .primary{grid-column:1/-1;background:#fff;color:#971323;border-color:#fff}
+.contact-callback.calling{background:#0b5d58}
+.contact-answers h2{font-size:14px;margin:0 0 6px}
+.contact-answers p{margin:0;font-size:13px;color:#526764}
+.contact-answers ul{margin:0 0 8px;padding-left:20px;font-size:13px;line-height:1.6}
+.contact-answers.flagged{border-color:#edb5bb;background:#fff4f5}
+.contact-answers.flagged strong{display:block;font-size:12px;color:#971323}
+
+/* Hold to confirm: a progress bar fills while pressed. */
+.hold-button{position:relative;overflow:hidden;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:none}
+.hold-track{position:absolute;left:10px;right:10px;bottom:5px;height:3px;border-radius:2px;background:#d9e2df}
+.hold-track>span{display:block;height:100%;width:calc(var(--hold,0) * 100%);border-radius:inherit;background:#971323}

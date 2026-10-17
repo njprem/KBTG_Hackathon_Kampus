@@ -1,11 +1,14 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+  EMPTY_SCAM_CHECK,
   PROTOTYPE_SCENARIOS,
   WARN_MINIMUM_WAIT_MS,
   canSenderConfirm,
   evaluateTransfer,
   getBangkokMonthKey,
+  salaryShare,
+  scamCheckSignals,
 } from '../src/domain/trustguard.ts'
 
 const scenario = (id) => PROTOTYPE_SCENARIOS.find((item) => item.id === id)
@@ -90,4 +93,17 @@ test('outside Trusted Zone still follows the existing demo pause rule', () => {
   const item = scenario('limit-only')
   const result = evaluateTransfer({ ...item, transfer: { ...item.transfer, zoneStatus: 'outside' }, reviewStartedAt })
   assert.deepEqual(result.reasons, ['monthly-limit', 'outside-trusted-zone'])
+})
+
+test('scam self-check counts only questions answered yes', () => {
+  assert.deepEqual(scamCheckSignals(EMPTY_SCAM_CHECK), [])
+  assert.deepEqual(scamCheckSignals({ 'on-call': 'no', secrecy: 'no', deadline: 'no' }), [])
+  assert.deepEqual(scamCheckSignals({ 'on-call': 'yes', secrecy: null, deadline: 'yes' }), ['on-call', 'deadline'])
+})
+
+test('salary share is a rounded whole percentage', () => {
+  assert.equal(salaryShare(18_000, 28_000), 64)
+  assert.equal(salaryShare(6_000, 28_000), 21)
+  assert.equal(salaryShare(56_000, 28_000), 200)
+  assert.throws(() => salaryShare(1_000, 0))
 })

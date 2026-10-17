@@ -39,6 +39,20 @@ The prototype lets a tester simulate inside, outside, or unavailable location st
 
 When an outside-Zone status is part of a paused transfer, the Trusted Contact sees a prominent prompt to contact the sender before responding. The contact sees only the coarse outside-Zone status, never an address or live coordinates. Inside and unavailable status are not disclosed to the contact. Zone context does not change the contact's advice/approval authority or the sender's two-minute Warn wait.
 
+## Attention and pressure features (proposed, 18 October 2026)
+
+Added after team feedback and a design review. They are prototype behavior for user testing; confirm with the team before presenting any of them as policy.
+
+- **Self-check answers inform, never decide.** A “yes” strengthens the warning and promotes stopping; it does not add a block, change the 2-minute wait, or alter contact authority. Scammers can coach victims to answer “no”, so treat this as a prompt for reflection, not detection.
+- **Self-check answers are shared with the Trusted Contact** (owner decision, 18 October 2026). This is extra sender data leaving the sender's view; the consent text should mention it if the feature stays.
+- **Contact callback** is simulated. In a real product it would notify the contact to call the sender, which works even while the sender is on another call (call waiting). An in-app voice call was considered and not chosen.
+- **Salary share** is computed from a fictional salary and shown only to the sender.
+- **Weakening protection** (lower level, higher limit, consent removed, contact changed) requires a simulated identity confirmation and states that the contact will be notified (simulated). Strengthening saves immediately. A delay before weakening takes effect was considered and not chosen.
+- **Hold to continue** (3 seconds) replaces the single tap for the final Warn continuation.
+- Rejected for now: purpose-category-specific warnings (scammers can coach the category), scheduling the transfer for tomorrow, device vibration.
+
+Known prototype gap: each scenario defines its own `zoneStatus`, but the app uses the Trusted Zone value from Settings for every scenario, so the laptop scenario's “unavailable” value is not applied.
+
 ## Pitch and prototype boundary
 
 Keep pitch-style product explanation in slides, not the in-app transfer journey. The prototype should read like an ordinary mobile banking flow. Use neutral feature labels in the interface while keeping brief transaction status, risk reason, and safety guidance at the decision point. Retain the unobtrusive simulation disclosure.

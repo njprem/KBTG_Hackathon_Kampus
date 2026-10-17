@@ -23,6 +23,17 @@ Start from Home and choose one of three scenarios: a transfer above the chosen m
 
 The accumulated limit uses the Asia/Bangkok calendar month. Several eligibility and recovery rules are intentionally marked as demo assumptions in [the product decisions](docs/PRODUCT_SPEC.md). See the [design spec](docs/DESIGN_SPEC.md) for the screen behavior and [agent workflow](docs/AGENT_WORKFLOW.md) for how the prototype is developed.
 
+## Flow walkthroughs (Playwright)
+
+```bash
+npx playwright install chromium   # first time only
+npm run e2e                        # runs every flow at phone width, starts its own dev server
+npm run e2e:report                 # opens the HTML report on localhost with screenshots of each step
+npm run e2e:ui                     # interactive runner for stepping through flows
+```
+
+The suite in `e2e/flows.spec.ts` covers: limit-only alarm→calm, reopening without the alarm, no contact response with the hold-to-continue confirmation, contact concern and no-concern advice, self-check escalation with contact callback, typed purpose, split transfers, the ordinary high-value purchase, outside Trusted Zone, Approval required approve and reject→recovery, and the settings identity check, Off level and no-consent paths.
+
 ## Tester and hosting notes
 
 Use the reset control to start over. A visible demo control may skip the two-minute wait so a facilitator can show the whole flow quickly; it is separate from the real wait behavior being tested. The trusted contact sees a masked amount (`฿XX,XXX`) in this prototype.
