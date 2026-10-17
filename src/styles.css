@@ -102,3 +102,30 @@
 .confirm-stop:not(:disabled):hover{background:#971323}
 .confirm-proceed{margin-top:7px;color:#5d6d68}
 @media(max-width:359px){.pause-backdrop{padding:12px}.pause-dialog{padding:13px;max-height:calc(100dvh - 48px)}.pause-transfer strong{font-size:19px}}
+
+/* Smart Pause fills the phone screen in red so an unusual transfer is unmistakable. */
+.pause-backdrop{background:#5c0711e6;padding:10px}
+.pause-dialog{width:min(100%,410px);height:calc(100dvh - 20px);max-height:none;background:#bf1729;color:#fff;padding:14px 14px 16px}
+.pause-topline{color:#ffe1e5}
+.pause-topline .icon-button{color:#fff}
+.pause-alert{background:transparent;padding:10px 4px 18px}
+.pause-alert>svg{width:46px;height:46px;margin-bottom:10px}
+.pause-alert h2{font-size:27px;line-height:1.3;margin-bottom:6px}
+.pause-alert p{font-size:13px}
+.pause-reasons{gap:8px;margin:14px 0 8px}
+.pause-reasons strong{font-size:15px;border-left-width:4px;padding-left:11px}
+.pause-alert small{font-size:12px}
+.pause-panel{background:#fff;color:#17312f;border-radius:16px;padding:12px}
+.pause-panel .pause-transfer{margin-top:0}
+@media(min-width:860px){.pause-dialog{height:auto;max-height:calc(100dvh - 40px)}}
+.text-input{width:100%;min-height:46px;border:1px solid #cddcd6;border-radius:10px;padding:10px 12px;color:#17312f;background:#fff}
+.pause-triggered{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.pause-triggered>svg{flex:none;width:46px;height:46px}
+.pause-triggered>span{font-size:18px;font-weight:800;letter-spacing:.3px;text-transform:uppercase;line-height:1.2}
+
+/* Shake once when Smart Pause opens; skipped for people who prefer reduced motion. */
+@keyframes pause-shake{0%,100%{transform:translateX(0)}10%,50%,90%{transform:translateX(-9px) rotate(-1deg)}30%,70%{transform:translateX(9px) rotate(1deg)}}
+@keyframes pause-icon-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+.pause-dialog{animation:pause-shake .6s ease-in-out .05s 1}
+.pause-triggered>svg{animation:pause-icon-pulse .6s ease-in-out .05s 2}
+@media(prefers-reduced-motion:reduce){.pause-dialog,.pause-triggered>svg{animation:none}}

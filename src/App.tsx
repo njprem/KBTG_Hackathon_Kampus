@@ -29,6 +29,7 @@ function App() {
   const [screen, setScreen] = useState<Screen>('home')
   const [scenario, setScenario] = useState<DemoScenario>(firstScenario)
   const [amountInput, setAmountInput] = useState(String(firstScenario.transfer.amountBaht))
+  const [purposeInput, setPurposeInput] = useState(firstScenario.transfer.purpose)
   const [zoneStatus, setZoneStatus] = useState<TrustedZoneStatus>(firstScenario.transfer.zoneStatus)
   const [settings, setSettings] = useState<TrustGuardSettings>({ ...firstScenario.settings })
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null)
@@ -37,6 +38,8 @@ function App() {
   const [outcome, setOutcome] = useState<Outcome>('paused')
   const [nowMs, setNowMs] = useState(Date.now())
   const [fastForwarded, setFastForwarded] = useState(false)
+  const [draft, setDraft] = useState<TrustGuardSettings>({ ...firstScenario.settings })
+  const [showAuth, setShowAuth] = useState(false)
   const [settingsReturn, setSettingsReturn] = useState<Screen>('home')
   const [showWarnConfirm, setShowWarnConfirm] = useState(false)
 
@@ -49,7 +52,8 @@ function App() {
   }, [showWarnConfirm, screen])
   const amountBaht = Number(amountInput)
   const amountIsValid = amountInput !== '' && Number.isSafeInteger(amountBaht) && amountBaht > 0 && amountBaht <= 1_000_000
-  const transfer = useMemo(() => ({ ...scenario.transfer, amountBaht, zoneStatus }), [scenario, amountBaht, zoneStatus])
+  const purpose = purposeInput.trim() || 'ไม่ได้ระบุ'
+  const transfer = useMemo(() => ({ ...scenario.transfer, amountBaht, purpose, zoneStatus }), [scenario, amountBaht, purpose, zoneStatus])
   const eligibleAt = evaluation?.warnEligibleAt ? Date.parse(evaluation.warnEligibleAt) : 0
   const secondsLeft = Math.max(0, Math.ceil((eligibleAt - nowMs) / 1000))
   const effectiveNow = new Date(fastForwarded ? Math.max(nowMs, eligibleAt) : nowMs).toISOString()
@@ -58,11 +62,11 @@ function App() {
   const visibleScreen = pauseOpen ? 'review' : screen
 
   function chooseScenario(item: DemoScenario) {
-    setScenario(item); setAmountInput(String(item.transfer.amountBaht)); setEvaluation(null)
+    setScenario(item); setAmountInput(String(item.transfer.amountBaht)); setPurposeInput(item.transfer.purpose); setEvaluation(null)
     setContactResponse({ kind: 'no-response' }); setRecoveryState('not-started'); setFastForwarded(false); setShowWarnConfirm(false); setScreen('entry')
   }
   function reset() {
-    setScenario(firstScenario); setAmountInput(String(firstScenario.transfer.amountBaht)); setZoneStatus(firstScenario.transfer.zoneStatus); setSettings({ ...firstScenario.settings })
+    setScenario(firstScenario); setAmountInput(String(firstScenario.transfer.amountBaht)); setPurposeInput(firstScenario.transfer.purpose); setZoneStatus(firstScenario.transfer.zoneStatus); setSettings({ ...firstScenario.settings })
     setEvaluation(null); setContactResponse({ kind: 'no-response' }); setRecoveryState('not-started'); setFastForwarded(false); setShowWarnConfirm(false); setScreen('home')
   }
   function evaluate() {
@@ -83,11 +87,13 @@ function App() {
     else if (screen === 'settings') setScreen(settingsReturn === 'pause' ? 'review' : settingsReturn)
     else setScreen('home')
   }
-  function openSettings(from: Screen) { setSettingsReturn(from); setScreen('settings') }
+  function openSettings(from: Screen) { setDraft({ ...settings, trustedContact: { ...settings.trustedContact } }); setShowAuth(false); setSettingsReturn(from); setScreen('settings') }
+  function applyDraft() { setShowAuth(false); setSettings(draft); setEvaluation(null); setScreen(settingsReturn === 'pause' ? 'review' : settingsReturn) }
+  function saveSettings() { if (weakensProtection(settings, draft)) setShowAuth(true); else applyDraft() }
   const titles: Record<Screen, string> = { home: 'หน้าหลัก', entry: 'โอนเงิน', review: 'ตรวจสอบรายการ', pause: 'Smart Pause', contact: 'มุมคนที่ไว้ใจ', outcome: 'สถานะรายการ', recovery: 'ขอความช่วยเหลือ', settings: 'ตั้งค่า TrustGuard' }
 
   return <div className="site-shell">
-    <div className="phone-shell" inert={pauseOpen || showWarnConfirm}>
+    <div className="phone-shell" inert={pauseOpen || showWarnConfirm || showAuth}>
       <div className="brandbar"><strong><ShieldCheck size={19} /> TrustGuard</strong><span>ต้นแบบสำหรับทดลอง</span></div>
       <header className="app-header"><button className="icon-button" onClick={screen === 'home' ? undefined : goBack} aria-label="ย้อนกลับ" disabled={screen === 'home'}><ArrowLeft size={20} /></button><strong>{titles[visibleScreen]}</strong><button className="icon-button" onClick={reset} aria-label="เริ่มการทดลองใหม่"><RefreshCcw size={18} /></button></header>
       <main className="screen-body" key={visibleScreen} ref={mainRef} tabIndex={-1} aria-label={titles[visibleScreen]}>
@@ -104,7 +110,8 @@ function App() {
         {screen === 'entry' && <>
           <Steps current={1} /><Heading eyebrow="รายการตัวอย่าง" title="โอนให้ใคร เท่าไร" detail="ใช้เฉพาะผู้รับสมมติที่เตรียมไว้สำหรับการทดลอง" />
           <section className="card"><div className="field-label">จากบัญชี</div><div className="account-row"><span className="account-icon"><CreditCard size={19} /></span><span><strong>บัญชีใช้จ่ายของพลอย</strong><small>บัญชีตัวอย่าง •• 4821</small></span></div><hr /><div className="field-label">ถึงผู้รับ</div><div className="account-row"><span className="avatar">{transfer.recipient.name.slice(0, 1)}</span><span><strong>{transfer.recipient.name}</strong><small>บัญชีสมมติ {transfer.recipient.maskedAccount}</small></span></div></section>
-          <section className="card"><label htmlFor="amount" className="field-label">จำนวนเงิน (บาท)</label><div className="large-input"><span>฿</span><input ref={amountRef} id="amount" type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" placeholder="0" value={amountInput} onChange={event => setAmountInput(event.target.value.replace(/\D/g, ''))} aria-describedby="amount-help" />{amountInput && <button className="amount-clear" type="button" aria-label="ล้างจำนวนเงิน" onClick={() => { setAmountInput(''); amountRef.current?.focus() }}><X size={19} /></button>}</div><p className="help" id="amount-help">{amountInput && !amountIsValid ? 'กรอกจำนวนเต็ม 1–1,000,000 บาท' : `วัตถุประสงค์: ${transfer.purpose}`}</p></section>
+          <section className="card"><label htmlFor="amount" className="field-label">จำนวนเงิน (บาท)</label><div className="large-input"><span>฿</span><input ref={amountRef} id="amount" type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" placeholder="0" value={amountInput} onChange={event => setAmountInput(event.target.value.replace(/\D/g, ''))} aria-describedby="amount-help" />{amountInput && <button className="amount-clear" type="button" aria-label="ล้างจำนวนเงิน" onClick={() => { setAmountInput(''); amountRef.current?.focus() }}><X size={19} /></button>}</div><p className="help" id="amount-help">{amountInput && !amountIsValid ? 'กรอกจำนวนเต็ม 1–1,000,000 บาท' : 'จำนวนเงินจะไม่แสดงให้คนที่ไว้ใจเห็น'}</p></section>
+          <section className="card"><label htmlFor="purpose" className="field-label">โอนไปเพื่ออะไร</label><input id="purpose" className="text-input" type="text" maxLength={60} autoComplete="off" placeholder="เช่น ค่าจองสินค้า ค่ามัดจำห้อง" value={purposeInput} onChange={event => setPurposeInput(event.target.value)} aria-describedby="purpose-help" /><p className="help" id="purpose-help">คนที่ไว้ใจจะเห็นข้อความนี้ประกอบการให้ความเห็น</p></section>
           <Actions><button className="primary" disabled={!amountIsValid} onClick={() => setScreen('review')}>ตรวจสอบรายการ <ArrowRight size={18} /></button></Actions>
         </>}
 
@@ -119,7 +126,7 @@ function App() {
           <div className="role-banner"><UserRoundCheck size={18} /> มุมมองของคนที่ไว้ใจ · จำลอง</div><Heading eyebrow="คำขอจากพลอย" title="ช่วยดูรายการนี้หน่อย" detail="คุณเห็นเฉพาะข้อมูลจำเป็นสำหรับการให้ความเห็น" />
           {evaluation.reasons.includes('outside-trusted-zone') && <div className="contact-zone-alert"><ShieldAlert size={20} /><span><strong>ผู้โอนอยู่นอก Trusted Zone</strong><small>กรุณาติดต่อพลอยก่อนให้ความเห็น · ไม่แสดงที่อยู่หรือพิกัด</small></span></div>}
           <section className="card"><div className="account-row"><span className="avatar">พ</span><span><strong>พลอยต้องการโอนเงิน</strong><small>คำขอให้ช่วยตรวจสอบรายการ</small></span></div><div className="contact-money">฿XX,XXX<small>ไม่แสดงยอดเงินจริงเพื่อความเป็นส่วนตัว</small></div><Row label="ผู้รับ" value={transfer.recipient.name} /><Row label="บัญชีผู้รับ" value={transfer.recipient.maskedAccount} /><Row label="รายละเอียดการโอน" value={transfer.purpose} /><Row label="เหตุผลที่ถาม" value={evaluation.reasons.map(contactReasonLabel).join(' · ')} /></section>
-          <Notice icon={<Info size={17} />}>รายละเอียดการโอนเป็นข้อความตัวอย่างจากฝั่งผู้โอน ไม่ใช่หลักฐานว่าผู้รับน่าเชื่อถือ คุณจะไม่เห็นยอดเงินคงเหลือหรือข้อมูลบัญชีเต็มของพลอย การตอบกลับนี้เป็นการจำลอง</Notice>
+          <Notice icon={<Info size={17} />}>รายละเอียดการโอนเป็นข้อความที่ผู้โอนพิมพ์เอง ไม่ใช่หลักฐานว่าผู้รับน่าเชื่อถือ คุณจะไม่เห็นยอดเงินคงเหลือหรือข้อมูลบัญชีเต็มของพลอย การตอบกลับนี้เป็นการจำลอง</Notice>
           <Actions>{settings.level === 'warn' ? <><button className="primary concern-action" onClick={() => { setContactResponse({ kind: 'warn-advice', advice: 'concern', respondedAt: new Date().toISOString() }); setScreen('pause') }}>ฉันกังวล ขอให้หยุดโอนแล้วคุยกันก่อน <ArrowRight size={18} /></button><button className="outline" onClick={() => { setContactResponse({ kind: 'warn-advice', advice: 'looks-okay', respondedAt: new Date().toISOString() }); setScreen('pause') }}>ยังไม่พบข้อกังวลจากข้อมูลที่เห็น</button></> : <><button className="primary" onClick={() => { setContactResponse({ kind: 'approval-decision', decision: 'approved', respondedAt: new Date().toISOString() }); setScreen('pause') }}>อนุมัติรายการจำลอง <Check size={18} /></button><button className="outline reject" onClick={() => { setContactResponse({ kind: 'approval-decision', decision: 'rejected', respondedAt: new Date().toISOString() }); setScreen('pause') }}>ไม่อนุมัติรายการ <X size={18} /></button></>}<button className="text-button" onClick={() => setScreen('pause')}>ยังไม่ตอบตอนนี้</button></Actions>
         </>}
 
@@ -139,19 +146,20 @@ function App() {
 
         {screen === 'settings' && <>
           <Heading eyebrow="การปกป้องของคุณ" title="ตั้งค่า TrustGuard" detail="เลือกระดับที่เหมาะกับคุณ" />
-          <section className="settings-section"><h2>ระดับการปกป้อง</h2><div className="level-list">{(['off', 'warn', 'approval-required'] as const).map(level => <button key={level} className={`level ${settings.level === level ? 'selected' : ''}`} onClick={() => setSettings({ ...settings, level })}><span className="radio">{settings.level === level && <Check size={13} />}</span><span><strong>{levels[level].title}</strong><small>{levels[level].detail}</small></span></button>)}</div></section>
-          <section className="card settings-section"><h2><ShieldCheck size={19} /> Trusted Limit</h2><label htmlFor="monthly-limit" className="field-label">วงเงินโอนสะสมต่อเดือน (บาท)</label><div className="setting-input">฿ <input id="monthly-limit" type="number" inputMode="numeric" min="1" step="1000" value={settings.monthlyLimitBaht} onChange={event => setSettings({ ...settings, monthlyLimitBaht: Number(event.target.value) })} /></div><p className="help">นับรายการไปยังผู้รับที่เฝ้าดูในเดือนปฏิทินตามเวลาไทย เริ่มใหม่วันที่ 1 ของเดือน</p></section>
-          <section className="card settings-section"><h2><Users size={19} /> Trusted Contact</h2><label htmlFor="trusted-person" className="field-label">คนที่คุณเลือก</label><select id="trusted-person" value={settings.trustedContact.name} onChange={event => setSettings({ ...settings, trustedContact: { ...settings.trustedContact, name: event.target.value, relationship: event.target.value === 'มิน' ? 'เพื่อนที่ไว้ใจ' : 'พี่สาว' } })}><option value="มิน">มิน · เพื่อนที่ไว้ใจ</option><option value="ฟ้า">ฟ้า · พี่สาว</option></select><label className="check-row"><input type="checkbox" checked={settings.trustedContact.consented} onChange={event => setSettings({ ...settings, trustedContact: { ...settings.trustedContact, consented: event.target.checked } })} /><span>คนนี้ยินยอมรับรายละเอียดจำกัดในตัวอย่าง</span></label><p className="help">เห็นชื่อผู้โอน ชื่อผู้รับ บัญชีผู้รับแบบปิดบางส่วน รายละเอียดการโอนตัวอย่าง และเหตุผลที่เตือน แต่ไม่เห็นยอดเงินจริง</p></section>
+          <section className="settings-section"><h2>ระดับการปกป้อง</h2><div className="level-list">{(['off', 'warn', 'approval-required'] as const).map(level => <button key={level} className={`level ${draft.level === level ? 'selected' : ''}`} onClick={() => setDraft({ ...draft, level })}><span className="radio">{draft.level === level && <Check size={13} />}</span><span><strong>{levels[level].title}</strong><small>{levels[level].detail}</small></span></button>)}</div></section>
+          <section className="card settings-section"><h2><ShieldCheck size={19} /> Trusted Limit</h2><label htmlFor="monthly-limit" className="field-label">วงเงินโอนสะสมต่อเดือน (บาท)</label><div className="setting-input">฿ <input id="monthly-limit" type="number" inputMode="numeric" min="1" step="1000" value={draft.monthlyLimitBaht} onChange={event => setDraft({ ...draft, monthlyLimitBaht: Number(event.target.value) })} /></div><p className="help">นับรายการไปยังผู้รับที่เฝ้าดูในเดือนปฏิทินตามเวลาไทย เริ่มใหม่วันที่ 1 ของเดือน</p></section>
+          <section className="card settings-section"><h2><Users size={19} /> Trusted Contact</h2><label htmlFor="trusted-person" className="field-label">คนที่คุณเลือก</label><select id="trusted-person" value={draft.trustedContact.name} onChange={event => setDraft({ ...draft, trustedContact: { ...draft.trustedContact, name: event.target.value, relationship: event.target.value === 'มิน' ? 'เพื่อนที่ไว้ใจ' : 'พี่สาว' } })}><option value="มิน">มิน · เพื่อนที่ไว้ใจ</option><option value="ฟ้า">ฟ้า · พี่สาว</option></select><label className="check-row"><input type="checkbox" checked={draft.trustedContact.consented} onChange={event => setDraft({ ...draft, trustedContact: { ...draft.trustedContact, consented: event.target.checked } })} /><span>คนนี้ยินยอมรับรายละเอียดจำกัดในตัวอย่าง</span></label><p className="help">เห็นชื่อผู้โอน ชื่อผู้รับ บัญชีผู้รับแบบปิดบางส่วน รายละเอียดการโอนที่ผู้โอนพิมพ์ และเหตุผลที่เตือน แต่ไม่เห็นยอดเงินจริง</p></section>
           <section className="card settings-section"><h2><MapPin size={19} /> Trusted Zone</h2><label htmlFor="zone-status" className="field-label">สถานะตำแหน่งสำหรับการทดลอง</label><select id="zone-status" value={zoneStatus} onChange={event => setZoneStatus(event.target.value as TrustedZoneStatus)}><option value="inside">อยู่ใน Trusted Zone</option><option value="outside">อยู่นอก Trusted Zone</option><option value="unavailable">ไม่สามารถตรวจสอบตำแหน่ง</option></select><p className="help">ใช้สถานะจำลอง ไม่ขอพิกัดจริง การอยู่ใน Trusted Zone ไม่ล้างคำเตือนจากกฎอื่น</p></section>
         </>}
       </main>
-      {screen === 'settings' && <div className="settings-save-bar"><button className="primary" disabled={!Number.isSafeInteger(settings.monthlyLimitBaht) || settings.monthlyLimitBaht <= 0} onClick={() => { setEvaluation(null); setScreen(settingsReturn === 'pause' ? 'review' : settingsReturn) }}>บันทึกในตัวอย่าง <Check size={18} /></button></div>}
+      {screen === 'settings' && <div className="settings-save-bar"><button className="primary" disabled={!Number.isSafeInteger(draft.monthlyLimitBaht) || draft.monthlyLimitBaht <= 0} onClick={saveSettings}>บันทึกในตัวอย่าง <Check size={18} /></button></div>}
       <nav className="bottom-nav" aria-label="เมนูหลัก"><button className={screen === 'home' ? 'active' : ''} onClick={() => setScreen('home')}><Home size={20} />หน้าหลัก</button><button className={['entry', 'review', 'pause', 'contact', 'outcome', 'recovery'].includes(screen) ? 'active' : ''} onClick={() => chooseScenario(scenario)}><Send size={20} />โอนเงิน</button><button className={screen === 'settings' ? 'active' : ''} onClick={() => openSettings(screen)}><Settings2 size={20} />ตั้งค่า</button></nav>
     </div>
     {pauseOpen && evaluation && <div className="pause-backdrop" inert={showWarnConfirm}>
       <div className="pause-dialog" ref={pauseRef} tabIndex={-1} role="alertdialog" aria-modal="true" aria-labelledby="pause-title" aria-describedby="pause-description" onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); closePause() } else trapDialogTab(event) }}>
         <div className="pause-topline"><span>Smart Pause · รายการที่ต้องทบทวน</span><button type="button" className="icon-button" onClick={closePause} aria-label="กลับไปตรวจสอบรายการ"><X size={19} /></button></div>
-        <div className="pause-alert"><ShieldAlert size={30} /><h2 id="pause-title">รายการนี้ยังไม่ถูกโอน</h2><p id="pause-description">พบรายการที่ควรหยุดทบทวนก่อนตัดสินใจ</p><div className="pause-reasons">{evaluation.reasons.map(reason => <strong key={reason}>{reason === 'monthly-limit' ? `ยอดโอนสะสมเดือนนี้ ${formatBaht(evaluation.monthlyTotalBaht)} ถึง Trusted Limit ${formatBaht(evaluation.monthlyLimitBaht)} ที่คุณตั้งไว้` : reasonLabel(reason)}</strong>)}</div>{transfer.recipient.risk === 'unknown' && <small>เรายังไม่มีข้อมูลความเสี่ยงของบัญชีผู้รับ</small>}</div>
+        <div className="pause-alert"><div className="pause-triggered"><ShieldAlert size={30} aria-hidden="true" /><span>TrustGuard Triggered</span></div><h2 id="pause-title">รายการนี้ยังไม่ถูกโอน</h2><p id="pause-description">พบรายการที่ควรหยุดทบทวนก่อนตัดสินใจ</p><div className="pause-reasons">{evaluation.reasons.map(reason => <strong key={reason}>{reason === 'monthly-limit' ? `ยอดโอนสะสมเดือนนี้ ${formatBaht(evaluation.monthlyTotalBaht)} ถึง Trusted Limit ${formatBaht(evaluation.monthlyLimitBaht)} ที่คุณตั้งไว้` : reasonLabel(reason)}</strong>)}</div>{transfer.recipient.risk === 'unknown' && <small>เรายังไม่มีข้อมูลความเสี่ยงของบัญชีผู้รับ</small>}</div>
+        <div className="pause-panel">
         <div className="pause-transfer"><div><strong>{formatBaht(amountBaht)}</strong><span>{transfer.recipient.name} · {transfer.recipient.maskedAccount}</span></div><span className="pause-badge">ยังไม่ถูกโอน</span></div>
         <ZoneStatus status={zoneStatus} />
         <div className="pause-contact"><strong>Trusted Contact · {settings.trustedContact.name}</strong><span>{evaluation.contactNotification === 'none' ? 'ยังไม่ได้รับความยินยอม จึงไม่มีการแจ้งเตือน' : contactResponse.kind === 'no-response' ? 'ส่งคำขอจำลองแล้ว · ยังไม่ได้รับคำตอบ' : contactResponse.kind === 'warn-advice' ? contactResponse.advice === 'concern' ? 'คนที่ไว้ใจกังวลและขอให้หยุดโอนแล้วคุยกันก่อน' : 'คนที่ไว้ใจยังไม่พบข้อกังวลจากข้อมูลที่เห็น' : contactResponse.decision === 'approved' ? 'คนที่ไว้ใจอนุมัติรายการจำลอง' : 'คนที่ไว้ใจไม่อนุมัติรายการ'}</span></div>
@@ -164,11 +172,24 @@ function App() {
           <button type="button" ref={continueRef} className="pause-continue" disabled={!mayConfirm} onClick={() => settings.level === 'warn' ? setShowWarnConfirm(true) : finish('contact-approved')}>{settings.level === 'warn' ? 'ยืนยันดำเนินการต่อ' : 'ดำเนินการต่อหลังได้รับอนุมัติ'}</button>
           {settings.level === 'warn' && secondsLeft > 0 && !fastForwarded && <button type="button" className="demo-link" onClick={() => setFastForwarded(true)}>ข้ามเวลารอ 2 นาที (เฉพาะการทดลอง)</button>}
         </div>
+        </div>
       </div>
     </div>}
     {showWarnConfirm && <div className="confirm-backdrop" role="presentation"><div className="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-description" onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); setShowWarnConfirm(false) } else trapDialogTab(event) }}><button type="button" className="confirm-close icon-button" onClick={() => setShowWarnConfirm(false)} aria-label="กลับไปดูคำเตือน"><X size={19} /></button><ShieldAlert size={32} /><h2 id="confirm-title">ยังต้องการดำเนินการต่อหรือไม่?</h2><p id="confirm-description">{contactResponse.kind === 'no-response' ? 'ตอนนี้คุณยังไม่ได้รับความเห็นจากคนที่ไว้ใจ เราขอแนะนำให้หยุดการโอนไว้ก่อน' : contactResponse.kind === 'warn-advice' && contactResponse.advice === 'concern' ? `${settings.trustedContact.name} กังวลและขอให้หยุดโอนแล้วคุยกันก่อน` : 'ตรวจสอบชื่อผู้รับและจำนวนเงินอีกครั้งก่อนตัดสินใจ'}<br /><strong>มิจฉาชีพมักเร่งให้โอนเงินทันที</strong></p><div className="confirm-summary"><span>รายการนี้ยังไม่ถูกโอน</span><strong>{formatBaht(amountBaht)} · {transfer.recipient.name}</strong></div><button ref={confirmRef} className="primary confirm-stop" onClick={() => finish('cancelled')}>หยุดการโอน</button><button className="pause-continue confirm-proceed" onClick={() => { if (mayConfirm && settings.level === 'warn') finish('warn-manually-confirmed') }}>ยืนยันดำเนินการต่อ (จำลอง)</button></div></div>}
+    {showAuth && <div className="confirm-backdrop" role="presentation"><div className="confirm-dialog auth-dialog" role="alertdialog" aria-modal="true" aria-labelledby="auth-title" aria-describedby="auth-description" onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); setShowAuth(false) } else trapDialogTab(event) }}><button type="button" className="confirm-close icon-button" onClick={() => setShowAuth(false)} aria-label="กลับไปแก้ไขการตั้งค่า"><X size={19} /></button><LockKeyhole size={32} /><h2 id="auth-title">ยืนยันตัวตนก่อนลดการปกป้อง</h2><p id="auth-description">การเปลี่ยนนี้ทำให้ TrustGuard ปกป้องคุณน้อยลง<br /><strong>หากมีคนบอกให้คุณปิดการปกป้องหรือเพิ่มวงเงิน นั่นอาจเป็นมิจฉาชีพ</strong></p><div className="confirm-summary">{weakeningChanges(settings, draft).map(change => <span key={change}>{change}</span>)}<strong>{settings.trustedContact.consented ? `${settings.trustedContact.name} จะได้รับแจ้งการเปลี่ยนแปลงนี้ (จำลอง)` : 'ไม่มี Trusted Contact ที่ได้รับแจ้ง'}</strong></div><button className="primary confirm-stop" onClick={() => { setDraft({ ...settings, trustedContact: { ...settings.trustedContact } }); setShowAuth(false) }}>คงการปกป้องเดิมไว้</button><button className="pause-continue confirm-proceed" onClick={applyDraft}>ยืนยันตัวตนและบันทึก (จำลอง)</button></div></div>}
   </div>
 }
+
+const levelRank: Record<ProtectionLevel, number> = { off: 0, warn: 1, 'approval-required': 2 }
+function weakeningChanges(before: TrustGuardSettings, after: TrustGuardSettings) {
+  const changes: string[] = []
+  if (levelRank[after.level] < levelRank[before.level]) changes.push(`ระดับการปกป้อง: ${levels[before.level].title} → ${levels[after.level].title}`)
+  if (after.monthlyLimitBaht > before.monthlyLimitBaht) changes.push(`Trusted Limit: ${formatBaht(before.monthlyLimitBaht)} → ${formatBaht(after.monthlyLimitBaht)}`)
+  if (before.trustedContact.consented && !after.trustedContact.consented) changes.push('ยกเลิกการแจ้ง Trusted Contact')
+  if (after.trustedContact.name !== before.trustedContact.name) changes.push(`เปลี่ยน Trusted Contact: ${before.trustedContact.name} → ${after.trustedContact.name}`)
+  return changes
+}
+const weakensProtection = (before: TrustGuardSettings, after: TrustGuardSettings) => weakeningChanges(before, after).length > 0
 
 function Steps({ current }: { current: number }) { return <div className="steps" aria-label={`ขั้นตอน ${current} จาก 3`}>{[1, 2, 3].map(n => <span key={n} className={n <= current ? 'on' : ''} />)}</div> }
 function Heading({ eyebrow, title, detail, centered = false }: { eyebrow: string; title: string; detail: string; centered?: boolean }) { return <div className={`heading ${centered ? 'centered' : ''}`}><span>{eyebrow}</span><h1>{title}</h1><p>{detail}</p></div> }
