@@ -1,6 +1,6 @@
 import { expect, test, type Page, type TestInfo } from '@playwright/test'
 
-// TrustGuard v3.0 flows at phone width. Every person, account and amount here is fictional.
+// TrustGuard v3.0 flows at phone width. Scenarios and "repeat" open the filled transfer form first. Every person, account and amount here is fictional.
 // Each test attaches screenshots so the HTML report (`npm run e2e:report`) doubles as a gallery.
 
 async function shot(page: Page, testInfo: TestInfo, name: string) {
@@ -17,11 +17,6 @@ const checkRow = (page: Page, name: string, state: 'ผ่าน' | 'ไม่�
 async function openScenario(page: Page, title: RegExp) {
   await page.goto('/')
   await button(page, title).click()
-}
-
-/** Demo scenarios and "repeat" jump straight to the review step. */
-async function atReview(page: Page) {
-  await expect(page.getByRole('heading', { name: 'ตรวจสอบอีกครั้ง' })).toBeVisible()
 }
 
 async function review(page: Page) {
@@ -51,8 +46,9 @@ async function saveSettings(page: Page) {
 test.describe('Smart Pause', () => {
   test('scam-style deposit fails 2 of 3 checks and pauses', async ({ page }, testInfo) => {
     await openScenario(page, /ค่าจองสินค้า/)
-    await shot(page, testInfo, '1 opened from scenario')
-    await atReview(page)
+    await expect(page.getByLabel('จำนวนเงิน (บาท)')).not.toHaveValue('')
+    await shot(page, testInfo, '1 scenario fills the transfer form')
+    await review(page)
     await expect(page.getByRole('note')).toHaveCount(0)
     await shot(page, testInfo, '2 review')
     await confirm(page)
@@ -69,7 +65,7 @@ test.describe('Smart Pause', () => {
 
   test('tapping (i) expands what a check means, tapping again folds it', async ({ page }, testInfo) => {
     await openScenario(page, /ค่าจองสินค้า/)
-    await atReview(page)
+    await review(page)
     await confirm(page)
     const limit = checkRow(page, 'Trust Limit', 'ไม่ผ่าน')
     await expect(limit).toHaveAttribute('aria-expanded', 'false')
@@ -84,7 +80,7 @@ test.describe('Smart Pause', () => {
 
   test('cancel keeps the money and shows the AOC hotline', async ({ page }, testInfo) => {
     await openScenario(page, /ค่าจองสินค้า/)
-    await atReview(page)
+    await review(page)
     await confirm(page)
     await button(page, 'ยกเลิกการโอน').click()
     await expect(page.getByRole('heading', { name: 'ยกเลิกการโอนแล้ว' })).toBeVisible()
@@ -97,7 +93,7 @@ test.describe('Smart Pause', () => {
   test('continue unlocks only after the 30-second wait', async ({ page }, testInfo) => {
     await page.clock.install()
     await openScenario(page, /ค่าจองสินค้า/)
-    await atReview(page)
+    await review(page)
     await confirm(page)
     const proceed = pauseSheet(page).getByRole('button', { name: /^โอนต่อ/ })
     await expect(proceed).toBeDisabled()
@@ -119,7 +115,7 @@ test.describe('Smart Pause', () => {
 
   test('closing the sheet keeps the hold until the user decides', async ({ page }) => {
     await openScenario(page, /ค่าจองสินค้า/)
-    await atReview(page)
+    await review(page)
     await confirm(page)
     await pauseSheet(page).getByRole('button', { name: 'ปิดเพื่อกลับไปดูรายการ' }).click()
     await expect(pauseSheet(page)).toBeHidden()
@@ -131,20 +127,20 @@ test.describe('Smart Pause', () => {
 test.describe('Trust Limit', () => {
   test('split transfers: notice first, pause on the third', async ({ page }, testInfo) => {
     await openScenario(page, /โอนแบ่งจ่าย/)
-    await atReview(page)
+    await review(page)
     await expect(page.getByRole('note')).toContainText('นิรันดร์ ไม่ใช่ Trust Contact ของคุณ')
     await expect(page.getByRole('note')).toContainText('ไม่ผ่าน 1 จาก 3 ข้อ')
     await shot(page, testInfo, '1 first transfer notice')
     await confirm(page)
     await expect(page.getByRole('heading', { name: 'โอนสำเร็จ (จำลอง)' })).toBeVisible()
     await button(page, 'โอนรายการเดิมอีกครั้ง').click()
-    await atReview(page)
+    await review(page)
     await confirm(page)
     await nav(page, 'หน้าหลัก').click()
     await expect(page.getByText('฿12,000 / ฿15,000')).toBeVisible()
     await shot(page, testInfo, '2 home meter')
     await button(page, /โอนแบ่งจ่าย/).click()
-    await atReview(page)
+    await review(page)
     await confirm(page)
     await expect(pauseSheet(page)).toBeVisible()
     await expect(checkRow(page, 'Trust Limit', 'ไม่ผ่าน')).toBeVisible()
@@ -153,10 +149,10 @@ test.describe('Trust Limit', () => {
 
   test('typing 6,000 by hand counts the same as the Home shortcut', async ({ page }, testInfo) => {
     await openScenario(page, /โอนแบ่งจ่าย/)
-    await atReview(page)
+    await review(page)
     await confirm(page)
     await button(page, 'โอนรายการเดิมอีกครั้ง').click()
-    await atReview(page)
+    await review(page)
     await confirm(page)
     await transferManually(page, '6000')
     await review(page)
@@ -169,7 +165,7 @@ test.describe('Trust Limit', () => {
 
   test('after continuing, a 20-baht transfer is not paused again', async ({ page }, testInfo) => {
     await openScenario(page, /ค่าจองสินค้า/)
-    await atReview(page)
+    await review(page)
     await confirm(page)
     await continuePastPause(page)
     await transferManually(page, '20')
@@ -182,7 +178,7 @@ test.describe('Trust Limit', () => {
 
   test('an ordinary laptop purchase still pauses', async ({ page }, testInfo) => {
     await openScenario(page, /ซื้อแล็ปท็อป/)
-    await atReview(page)
+    await review(page)
     await confirm(page)
     await expect(pauseSheet(page)).toContainText('79% ของเงินเดือน')
     await shot(page, testInfo, '1 laptop pause')
@@ -203,7 +199,7 @@ test.describe('Trust Contact', () => {
 
   test('a Trust Contact passes immediately and is not counted', async ({ page }, testInfo) => {
     await openScenario(page, /โอนให้แม่/)
-    await atReview(page)
+    await review(page)
     await expect(page.getByRole('note')).toHaveCount(0)
     await shot(page, testInfo, '1 review without notice')
     await confirm(page)
@@ -221,7 +217,7 @@ test.describe('Trust Contact', () => {
     await shot(page, testInfo, '1 contact added')
     await saveSettings(page)
     await button(page, /ค่าจองสินค้า/).click()
-    await atReview(page)
+    await review(page)
     await confirm(page)
     await checkRow(page, 'Trust Contact', 'ไม่ผ่าน').click()
     await expect(pauseSheet(page)).toContainText('นิรันดร์ เพิ่งถูกเพิ่ม ยังเฝ้าดูอีก 7 วัน')
@@ -276,7 +272,7 @@ test.describe('Settings and fixes', () => {
     await page.getByRole('dialog', { name: 'ยืนยันก่อนลดการปกป้อง' }).getByRole('button', { name: 'ยืนยันและบันทึก (จำลอง)' }).click()
     await expect(page.getByText('ปิดอยู่')).toBeVisible()
     await button(page, /ค่าจองสินค้า/).click()
-    await atReview(page)
+    await review(page)
     await confirm(page)
     await expect(page.getByRole('heading', { name: 'โอนสำเร็จ (จำลอง)' })).toBeVisible()
   })

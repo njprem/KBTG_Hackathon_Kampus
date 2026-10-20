@@ -12,7 +12,7 @@ The product UI must not use KBank, KBTG or K PLUS names, logos or brand assets.
 
 ## Current experience
 
-1. Home shows four scenario cards; one tap opens the review step. Each card previews its result with the current settings.
+1. Home shows four scenario cards; a tap opens the transfer form already filled in. Each card previews its result with the current settings.
 2. Manual transfers go through recipient and amount, then review. Amounts above the balance are rejected.
 3. On confirm, a short "กำลังทำรายการ" spinner runs, then:
    - 0 failed checks: completed.

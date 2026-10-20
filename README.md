@@ -22,7 +22,7 @@ For a production build, run `npm run build` and then `npm run preview`.
 ## Prototype paths (v3.0)
 
 Home shows four demo scenarios.
-One tap fills the transfer and opens the review step; a badge on each card previews what will happen with the current settings.
+A tap opens the transfer form already filled in; a badge on each card previews what will happen with the current settings.
 
 | Scenario | Default result |
 | --- | --- |

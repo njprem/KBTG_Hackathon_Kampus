@@ -92,23 +92,17 @@ export default function App() {
     go('transfer')
   }
 
-  /** Demo scenarios are one tap: they fill the transfer and land on the review step. */
+  /** Demo scenarios fill the transfer form; the user still reviews it before going on. */
   function startScenario(scenario: DemoScenario) {
-    toReview(scenario.recipientId, String(scenario.amountBaht))
+    startTransfer(scenario.recipientId, String(scenario.amountBaht))
   }
 
-  function toReview(nextRecipientId = recipientId, nextAmount = amountInput) {
-    if (amountError(nextAmount, balance) !== null || nextAmount === '') {
-      // Not enough balance for the shortcut: open the form so the reason is visible.
-      startTransfer(nextRecipientId, nextAmount)
-      return
-    }
+  function toReview() {
+    if (amountError(amountInput, balance) !== null || amountInput === '') return
     const createdAt = new Date().toISOString()
-    setRecipientId(nextRecipientId)
-    setAmountInput(nextAmount)
     setNowMs(Date.parse(createdAt))
     setReviewAt(createdAt)
-    setEvaluation(evaluateTransfer({ draft: { recipient: findRecipient(nextRecipientId), amountBaht: Number(nextAmount), createdAt }, ledger, settings, baseline }))
+    setEvaluation(evaluateTransfer({ draft: { recipient, amountBaht, createdAt }, ledger, settings, baseline }))
     setPause(null)
     go('review')
   }
@@ -235,7 +229,7 @@ export default function App() {
                   settings={settings}
                   onRecipient={setRecipientId}
                   onAmount={setAmountInput}
-                  onNext={() => toReview()}
+                  onNext={toReview}
                 />
               )}
               {screen === 'review' && evaluation && (
@@ -249,7 +243,7 @@ export default function App() {
                 />
               )}
               {screen === 'outcome' && (
-                <OutcomeScreen kind={outcome} recipient={recipient} amountBaht={amountBaht} onAgain={() => toReview()} onHome={() => go('home')} />
+                <OutcomeScreen kind={outcome} recipient={recipient} amountBaht={amountBaht} onAgain={() => startTransfer(recipientId, amountInput)} onHome={() => go('home')} />
               )}
               {screen === 'settings' && <SettingsScreen draft={draftSettings} now={nowIso} onChange={setDraftSettings} />}
             </m.div>

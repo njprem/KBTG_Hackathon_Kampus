@@ -54,12 +54,12 @@ Motion follows a reference banking app the team chose; durations stay short and 
 | Transfer | Step 1 of 2. Recipient avatar row (radio group, Trust Contact badge), selected recipient account card, amount field with balance and errors. |
 | Review | Step 2 of 2. Amount, from/to rows and simulated location. One failed check adds an amber note here. |
 | Smart Pause | Badge, "TrustGuard พักรายการนี้ไว้ก่อน" pill, title "เงินยังไม่ถูกโอน", "ไม่ผ่าน N จาก 3 ข้อ", amount card with salary share, red-framed 3T checklist, amber scam line "ถ้ามีคนบอกให้กดข้ามหน้านี้ คนนั้นคือมิจฉาชีพ", Cancel (primary), Continue with countdown, demo-only skip link. |
-| Outcome | Completed, continued or cancelled card with amount and recipient; AOC 1441 hotline when the user was paused; "โอนรายการเดิมอีกครั้ง" goes straight back to review. |
+| Outcome | Completed, continued or cancelled card with amount and recipient; AOC 1441 hotline when the user was paused; "โอนรายการเดิมอีกครั้ง" reopens the transfer form with the same recipient and amount. |
 | Settings | On/off switch, then Trust Zone, Trust Contact and Trust Limit sections in that order, each with an (i) disclosure; save button above the floating nav. |
 
 ## Demo affordances
 
-- Scenario cards and "โอนรายการเดิมอีกครั้ง" skip the form and land on review, so judges can try each feature in two taps.
+- Scenario cards and "โอนรายการเดิมอีกครั้ง" open the transfer form already filled in, so the user sees who and how much before tapping "ตรวจสอบรายการ" (owner decision, 20 October 2026).
 - The reset control in the header restores the demo state.
 - The skip-wait link is labelled "(เฉพาะการทดลอง)".
 
