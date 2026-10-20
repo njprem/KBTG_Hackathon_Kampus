@@ -16,7 +16,7 @@ The primary agent owns the final decisions, task division, integration, verifica
 | Product and design agent | `gpt-6-sol`, high | Review the hand-off and design spec; decide the screen sequence, interaction details, Thai copy, and explicit demo assumptions | Short design decisions with screen states and open questions |
 | Research agent | `gpt-6-luna`, medium | Check only the current external facts needed for the build: relevant banking UX patterns, accessibility, Vercel setup, and any claims intended for the demo | Primary-source links, dates, and actionable implications |
 | Implementation agent | `gpt-6-sol`, medium | Build a clearly owned part of the app, such as the transfer and Smart Pause flow | Code, build result, and any integration notes |
-| Second implementation agent, if useful | `gpt-6-sol`, medium for complex UI; `gpt-6-luna`, medium for a narrow task | Build a separate feature or asset set with non-overlapping files, such as the contact view after the shared interface is defined | Code and focused verification |
+| Second implementation agent, if useful | `gpt-6-sol`, medium for complex UI; `gpt-6-luna`, medium for a narrow task | Build a separate feature or asset set with non-overlapping files, such as the Settings screen after the shared interface is defined | Code and focused verification |
 
 These are starting choices, not fixed quotas. Official OpenAI guidance positions Astra for the hardest work, Sol for complex work with cost awareness, and Luna for focused tasks. The available subagent picker in this workspace currently lists `gpt-6-sol`; use a newer Sol variant only if it becomes available here. Do not assume API token prices directly equal Codex plan credits.
 
@@ -36,6 +36,7 @@ These are starting choices, not fixed quotas. Official OpenAI guidance positions
 - Keep Astra for an ambiguous design decision, a difficult integration, or a final high-stakes review when Sol's result leaves a concrete issue. Do not rerun the same task across models without a reason.
 - Stop agents once their bounded deliverable is complete. The primary agent performs one integrated verification pass instead of having every agent repeat the full test suite.
 
-## First proposed milestone
+## Current milestone
 
-Create a clickable phone prototype for **Home → Transfer review → Smart Pause → Contact review → Sender outcome** using the limit-only example in the design spec. Include a reset control and a role switch for testing. Then add split-transfer, ordinary high-value, no-response, and missing-location branches. The final milestone is a Vercel link that external testers can open and use without a real bank account.
+v3.0 is built (see [the handoff](PROJECT_HANDOFF.md)).
+Next: user walkthroughs of the four Home scenarios, mentor confirmation of the 2-of-3 rule and 30-second wait, and a protected Vercel preview for testers.

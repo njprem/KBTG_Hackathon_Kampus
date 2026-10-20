@@ -1,286 +1,253 @@
 /**
- * TrustGuard demo rules. Every account, person, amount, and response here is fictional.
+ * TrustGuard v3 demo rules (3T: Trust Zone, Trust Contact, Trust Limit).
+ * Every account, person, amount and location here is fictional.
  * This module does not move money, contact a bank, or use real risk/location data.
- * Amounts are whole Thai baht for this prototype; the UI may format them with .00.
+ * Amounts are whole Thai baht; the UI may format them with .00.
  */
 
-export type ProtectionLevel = "off" | "warn" | "approval-required";
-export type RecipientWatchStatus = "watched" | "established";
-export type RecipientRisk = "unknown" | "none" | "elevated";
-export type TrustedZoneStatus = "inside" | "outside" | "unavailable";
+export type TrustZoneStatus = 'inside' | 'outside' | 'unavailable'
+export type CheckState = 'pass' | 'fail' | 'unknown'
 
 export interface Recipient {
-  id: string;
-  name: string;
-  maskedAccount: string;
-  watchStatus: RecipientWatchStatus;
-  risk: RecipientRisk;
+  id: string
+  name: string
+  maskedAccount: string
+  kind: 'person' | 'merchant'
+  /** Short Thai description shown in pickers, e.g. relationship or shop type. */
+  note: string
 }
 
-export interface DemoTransfer {
-  id: string;
-  /** ISO timestamp with an explicit timezone or Z. */
-  createdAt: string;
-  senderName: string;
-  sourceMaskedAccount: string;
-  recipient: Recipient;
-  amountBaht: number;
-  purpose: string;
-  zoneStatus: TrustedZoneStatus;
-}
-
-export interface PriorTransfer {
-  id: string;
-  /** ISO timestamp with an explicit timezone or Z. */
-  createdAt: string;
-  recipientWatchStatus: RecipientWatchStatus;
-  amountBaht: number;
+export interface TrustContactMember {
+  recipientId: string
+  /** ISO timestamp with timezone. Recently added members stay counted until the watch period ends. */
+  addedAt: string
 }
 
 export interface TrustGuardSettings {
-  level: ProtectionLevel;
-  monthlyLimitBaht: number;
-  trustedContact: {
-    name: string;
-    relationship: string;
-    /** The demo assumes this person agreed to receive limited transfer details. */
-    consented: boolean;
-  };
+  enabled: boolean
+  monthlyLimitBaht: number
+  trustContacts: TrustContactMember[]
+  /** Simulated in the prototype; a real product would learn usual transfer locations. */
+  zone: TrustZoneStatus
 }
 
-export type PauseReason =
-  | "monthly-limit"
-  | "recipient-risk"
-  | "outside-trusted-zone";
+export interface CompletedTransfer {
+  id: string
+  /** ISO timestamp with timezone. */
+  createdAt: string
+  recipientId: string
+  amountBaht: number
+  /** Whether this transfer counted toward Trust Limit when it was made. */
+  counted: boolean
+}
+
+/**
+ * Month total (counted transfers) at the moment the sender last continued past a pause.
+ * Demo assumption: after the sender continues, Trust Limit fails again only when
+ * another full limit accumulates, so a 20-baht transfer later that month is not paused.
+ */
+export interface LimitBaseline {
+  monthKey: string
+  baht: number
+}
+
+export interface TransferDraft {
+  recipient: Recipient
+  amountBaht: number
+  createdAt: string
+}
+
+export interface ZoneCheck {
+  state: CheckState
+  status: TrustZoneStatus
+}
+
+export interface ContactCheck {
+  state: CheckState
+  inList: boolean
+  /** Whole days left in the watch period, 0 when the recipient is not being watched. */
+  watchDaysLeft: number
+}
+
+export interface LimitCheck {
+  state: CheckState
+  /** Whether this transfer counts toward Trust Limit (recipient not effectively trusted). */
+  counted: boolean
+  /** Counted total this Bangkok calendar month, including this transfer when counted. */
+  monthTotalBaht: number
+  /** Counted amount since the last time the sender continued past a pause. */
+  sinceBaselineBaht: number
+  limitBaht: number
+}
+
+export type Decision = 'complete' | 'notice' | 'pause'
 
 export interface Evaluation {
-  action: "continue" | "smart-pause";
-  reasons: PauseReason[];
-  monthKey: string;
-  monthlyPriorBaht: number;
-  monthlyTotalBaht: number;
-  monthlyLimitBaht: number;
-  contactNotification: "none" | "advice-request" | "approval-request";
-  /** Earliest manual confirmation in Warn; reaching this time never confirms automatically. */
-  warnEligibleAt: string | null;
+  monthKey: string
+  zone: ZoneCheck
+  contact: ContactCheck
+  limit: LimitCheck
+  failedCount: number
+  /** 0 failed → complete, 1 → quiet notice on review, 2 or more → Smart Pause. Off → complete. */
+  decision: Decision
 }
 
-export type ContactResponse =
-  | { kind: "no-response" }
-  | { kind: "warn-advice"; advice: "looks-okay" | "concern"; respondedAt: string }
-  | { kind: "approval-decision"; decision: "approved" | "rejected"; respondedAt: string };
+const BANGKOK_TIMEZONE = 'Asia/Bangkok'
+const DAY_MS = 86_400_000
 
-/** Recovery is a separate simulated review, never instant sender approval. */
-export type RecoveryState =
-  | "not-started"
-  | "request-drafted"
-  | "pending-demo-review";
-
-export type SenderOutcome =
-  | "paused"
-  | "cancelled"
-  | "contact-approved"
-  | "warn-manually-confirmed"
-  | "recovery-pending";
-
-export interface DemoScenario {
-  id: "limit-only" | "split-transfers" | "ordinary-high-value";
-  label: string;
-  description: string;
-  transfer: DemoTransfer;
-  history: PriorTransfer[];
-  settings: TrustGuardSettings;
-}
-
-const BANGKOK_TIMEZONE = "Asia/Bangkok";
-export const WARN_MINIMUM_WAIT_MS = 120_000;
+/** Demo assumption: a newly added Trust Contact member is still counted for this many days. */
+export const WATCH_PERIOD_DAYS = 7
+/** Mentor feedback: the earlier 2-minute wait was too long. A hypothesis to test, not policy. */
+export const PAUSE_DELAY_MS = 30_000
+/** Pause when this many of the 3T checks fail. */
+export const PAUSE_FAILED_CHECKS = 2
 
 function timestamp(value: string): number {
-  const parsed = Date.parse(value);
+  const parsed = Date.parse(value)
   if (!Number.isFinite(parsed) || !/(?:Z|[+-]\d\d:\d\d)$/i.test(value)) {
-    throw new Error(`Expected an ISO timestamp with timezone: ${value}`);
+    throw new Error(`Expected an ISO timestamp with timezone: ${value}`)
   }
-  return parsed;
+  return parsed
 }
 
 function validBaht(value: number): boolean {
-  return Number.isSafeInteger(value) && value >= 0;
+  return Number.isSafeInteger(value) && value >= 0
 }
 
 /** Calendar month in Thailand, independent of the viewer's device timezone. */
 export function getBangkokMonthKey(isoTimestamp: string): string {
-  const parts = new Intl.DateTimeFormat("en-US", {
+  const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: BANGKOK_TIMEZONE,
-    year: "numeric",
-    month: "2-digit",
-  }).formatToParts(new Date(timestamp(isoTimestamp)));
-  const year = parts.find((part) => part.type === "year")?.value;
-  const month = parts.find((part) => part.type === "month")?.value;
-  if (!year || !month) throw new Error("Could not determine Bangkok calendar month");
-  return `${year}-${month}`;
+    year: 'numeric',
+    month: '2-digit',
+  }).formatToParts(new Date(timestamp(isoTimestamp)))
+  const year = parts.find((part) => part.type === 'year')?.value
+  const month = parts.find((part) => part.type === 'month')?.value
+  if (!year || !month) throw new Error('Could not determine Bangkok calendar month')
+  return `${year}-${month}`
+}
+
+/** Whole days remaining in a member's watch period at `now`; 0 once it has ended. */
+export function watchDaysLeft(member: TrustContactMember, now: string): number {
+  const endsAt = timestamp(member.addedAt) + WATCH_PERIOD_DAYS * DAY_MS
+  const left = endsAt - timestamp(now)
+  return left > 0 ? Math.ceil(left / DAY_MS) : 0
+}
+
+/** A recipient is effectively trusted only when in the Trust Contact and past the watch period. */
+export function isEffectivelyTrusted(settings: TrustGuardSettings, recipientId: string, now: string): boolean {
+  const member = settings.trustContacts.find((item) => item.recipientId === recipientId)
+  return member !== undefined && watchDaysLeft(member, now) === 0
+}
+
+/** Counted (Trust Limit) total for the Bangkok month of `now`, from completed transfers. */
+export function countedMonthTotal(ledger: readonly CompletedTransfer[], now: string): number {
+  const monthKey = getBangkokMonthKey(now)
+  return ledger.reduce((sum, item) => {
+    if (!validBaht(item.amountBaht)) throw new Error('Ledger amounts must be whole, non-negative baht')
+    return item.counted && getBangkokMonthKey(item.createdAt) === monthKey ? sum + item.amountBaht : sum
+  }, 0)
 }
 
 export function evaluateTransfer(input: {
-  transfer: DemoTransfer;
-  history: readonly PriorTransfer[];
-  settings: TrustGuardSettings;
-  /** When this demo review begins; use current time to start the Warn timer. */
-  reviewStartedAt: string;
+  draft: TransferDraft
+  ledger: readonly CompletedTransfer[]
+  settings: TrustGuardSettings
+  baseline: LimitBaseline | null
 }): Evaluation {
-  const { transfer, history, settings, reviewStartedAt } = input;
-  if (!validBaht(transfer.amountBaht) || !validBaht(settings.monthlyLimitBaht) || settings.monthlyLimitBaht === 0) {
-    throw new Error("Transfer amount must be non-negative and monthly limit must be a positive whole baht amount");
+  const { draft, ledger, settings, baseline } = input
+  if (!validBaht(draft.amountBaht) || draft.amountBaht === 0) throw new Error('Transfer amount must be a positive whole baht amount')
+  if (!validBaht(settings.monthlyLimitBaht) || settings.monthlyLimitBaht === 0) throw new Error('Trust Limit must be a positive whole baht amount')
+
+  const now = draft.createdAt
+  const monthKey = getBangkokMonthKey(now)
+  const member = settings.trustContacts.find((item) => item.recipientId === draft.recipient.id)
+  const daysLeft = member ? watchDaysLeft(member, now) : 0
+  const trusted = member !== undefined && daysLeft === 0
+
+  const zone: ZoneCheck = {
+    status: settings.zone,
+    // Being inside never clears another check; unavailable location is not itself suspicious.
+    state: settings.zone === 'outside' ? 'fail' : settings.zone === 'inside' ? 'pass' : 'unknown',
   }
-  const transferTime = timestamp(transfer.createdAt);
-  const reviewStartTime = timestamp(reviewStartedAt);
-  const monthKey = getBangkokMonthKey(transfer.createdAt);
+  const contact: ContactCheck = { state: trusted ? 'pass' : 'fail', inList: member !== undefined, watchDaysLeft: daysLeft }
 
-  // Proposed demo assumption: all recipients remain watched until explicitly marked
-  // established. A small earlier transfer never changes that status automatically.
-  // Only completed prior transfers to watched recipients count, across recipients.
-  const monthlyPriorBaht = history.reduce((sum, prior) => {
-    if (!validBaht(prior.amountBaht)) throw new Error("Prior transfer amount must be whole, non-negative baht");
-    return prior.id !== transfer.id &&
-      prior.recipientWatchStatus === "watched" &&
-      timestamp(prior.createdAt) < transferTime &&
-      getBangkokMonthKey(prior.createdAt) === monthKey
-      ? sum + prior.amountBaht
-      : sum;
-  }, 0);
-  const monthlyTotalBaht = monthlyPriorBaht +
-    (transfer.recipient.watchStatus === "watched" ? transfer.amountBaht : 0);
-
-  const reasons: PauseReason[] = [];
-  if (transfer.recipient.watchStatus === "watched" && monthlyTotalBaht >= settings.monthlyLimitBaht) {
-    reasons.push("monthly-limit");
+  const counted = !trusted
+  const monthTotalBaht = countedMonthTotal(ledger, now) + (counted ? draft.amountBaht : 0)
+  const baselineBaht = baseline && baseline.monthKey === monthKey ? baseline.baht : 0
+  const sinceBaselineBaht = Math.max(0, monthTotalBaht - baselineBaht)
+  const limit: LimitCheck = {
+    counted,
+    monthTotalBaht,
+    sinceBaselineBaht,
+    limitBaht: settings.monthlyLimitBaht,
+    state: counted && sinceBaselineBaht >= settings.monthlyLimitBaht ? 'fail' : 'pass',
   }
-  // These two signals are fictional inputs. Unknown risk and unavailable location
-  // do not trigger or clear a pause. Being inside the zone cannot clear a limit.
-  if (transfer.recipient.risk === "elevated") reasons.push("recipient-risk");
-  if (transfer.zoneStatus === "outside") reasons.push("outside-trusted-zone");
 
-  const paused = settings.level !== "off" && reasons.length > 0;
-  const contactNotification = !paused || !settings.trustedContact.consented
-    ? "none"
-    : settings.level === "warn"
-      ? "advice-request"
-      : "approval-request";
+  const failedCount = [zone, contact, limit].filter((check) => check.state === 'fail').length
+  const decision: Decision = !settings.enabled || failedCount === 0
+    ? 'complete'
+    : failedCount >= PAUSE_FAILED_CHECKS ? 'pause' : 'notice'
 
-  return {
-    action: paused ? "smart-pause" : "continue",
-    reasons,
-    monthKey,
-    monthlyPriorBaht,
-    monthlyTotalBaht,
-    monthlyLimitBaht: settings.monthlyLimitBaht,
-    contactNotification,
-    warnEligibleAt: paused && settings.level === "warn"
-      ? new Date(reviewStartTime + WARN_MINIMUM_WAIT_MS).toISOString()
-      : null,
-  };
-}
-
-/** This only gates a demo sender action; it does not initiate a transfer. */
-export function canSenderConfirm(input: {
-  evaluation: Evaluation;
-  level: ProtectionLevel;
-  now: string;
-  contactResponse: ContactResponse;
-  recoveryState: RecoveryState;
-}): boolean {
-  const { evaluation, level, now, contactResponse, recoveryState } = input;
-  if (recoveryState !== "not-started") return false;
-  if (evaluation.action === "continue") return true;
-  if (level === "warn") {
-    return evaluation.warnEligibleAt !== null && timestamp(now) >= timestamp(evaluation.warnEligibleAt);
-  }
-  return level === "approval-required" &&
-    evaluation.contactNotification === "approval-request" &&
-    contactResponse.kind === "approval-decision" &&
-    contactResponse.decision === "approved";
-}
-
-/** Sender self-check shown during Smart Pause. Answers inform warnings; they never block or release a transfer. */
-export type ScamCheckQuestion = "on-call" | "secrecy" | "deadline";
-export type ScamCheckAnswers = Record<ScamCheckQuestion, "yes" | "no" | null>;
-export const SCAM_CHECK_QUESTIONS: readonly ScamCheckQuestion[] = ["on-call", "secrecy", "deadline"];
-export const EMPTY_SCAM_CHECK: ScamCheckAnswers = { "on-call": null, secrecy: null, deadline: null };
-
-/** Questions answered "yes", in display order. Unanswered questions are not signals. */
-export function scamCheckSignals(answers: ScamCheckAnswers): ScamCheckQuestion[] {
-  return SCAM_CHECK_QUESTIONS.filter((question) => answers[question] === "yes");
+  return { monthKey, zone, contact, limit, failedCount, decision }
 }
 
 /** Sender-only context: this transfer as a whole-number share of the demo monthly salary. */
 export function salaryShare(amountBaht: number, monthlySalaryBaht: number): number {
   if (!validBaht(amountBaht) || !validBaht(monthlySalaryBaht) || monthlySalaryBaht === 0) {
-    throw new Error("Amount and salary must be whole baht; salary must be positive");
+    throw new Error('Amount and salary must be whole baht; salary must be positive')
   }
-  return Math.round((amountBaht / monthlySalaryBaht) * 100);
+  return Math.round((amountBaht / monthlySalaryBaht) * 100)
 }
 
-export const DEMO_MONTHLY_SALARY_BAHT = 28_000;
-export const DEMO_BALANCE_BAHT = 28_000;
+/** Settings changes that lower protection and therefore need an explicit confirmation. */
+export function weakeningChanges(before: TrustGuardSettings, after: TrustGuardSettings): Array<'disabled' | 'limit-raised'> {
+  const changes: Array<'disabled' | 'limit-raised'> = []
+  if (before.enabled && !after.enabled) changes.push('disabled')
+  if (after.monthlyLimitBaht > before.monthlyLimitBaht) changes.push('limit-raised')
+  return changes
+}
 
-const demoContact = { name: "มิน", relationship: "เพื่อนที่ไว้ใจ", consented: true };
-const demoSettings: TrustGuardSettings = {
-  level: "warn",
+export const DEMO_MONTHLY_SALARY_BAHT = 28_000
+export const DEMO_BALANCE_BAHT = 28_000
+export const DEMO_SENDER = { name: 'พลอย', maskedAccount: '•• 4821' }
+
+export const DEMO_RECIPIENTS: readonly Recipient[] = [
+  { id: 'niran', name: 'นิรันดร์', maskedAccount: '•• 6392', kind: 'person', note: 'ผู้ขายออนไลน์' },
+  { id: 'it-shop', name: 'ร้านอุปกรณ์ไอทีตัวอย่าง', maskedAccount: '•• 1048', kind: 'merchant', note: 'ร้านค้า' },
+  { id: 'mom', name: 'แม่', maskedAccount: '•• 2275', kind: 'person', note: 'ครอบครัว' },
+  { id: 'min', name: 'มิน', maskedAccount: '•• 7730', kind: 'person', note: 'เพื่อนสนิท' },
+]
+
+export function findRecipient(id: string): Recipient {
+  const recipient = DEMO_RECIPIENTS.find((item) => item.id === id)
+  if (!recipient) throw new Error(`Unknown demo recipient: ${id}`)
+  return recipient
+}
+
+/** Initial settings; Trust Contact members were added long ago so they are past the watch period. */
+export const DEMO_SETTINGS: TrustGuardSettings = {
+  enabled: true,
   monthlyLimitBaht: 15_000,
-  trustedContact: demoContact,
-};
-const demoSender = { senderName: "พลอย", sourceMaskedAccount: "•• 4821" };
+  trustContacts: [
+    { recipientId: 'mom', addedAt: '2026-01-05T09:00:00+07:00' },
+    { recipientId: 'min', addedAt: '2026-03-12T09:00:00+07:00' },
+  ],
+  zone: 'inside',
+}
 
-/** Fixed fictional examples; 2026 dates make demo behavior deterministic. */
-export const PROTOTYPE_SCENARIOS: readonly DemoScenario[] = [
-  {
-    id: "limit-only",
-    label: "ค่าจองสินค้า · ฿18,000",
-    description: "โอน ฿18,000 ให้ผู้รับที่เฝ้าดู โดยไม่มีสัญญาณความเสี่ยงของบัญชี",
-    settings: demoSettings,
-    history: [],
-    transfer: {
-      id: "demo-limit-1",
-      createdAt: "2026-10-16T10:00:00+07:00",
-      ...demoSender,
-      recipient: { id: "niran", name: "นิรันดร์", maskedAccount: "•• 6392", watchStatus: "watched", risk: "unknown" },
-      amountBaht: 18_000,
-      purpose: "ค่าจองสินค้า",
-      zoneStatus: "inside",
-    },
-  },
-  {
-    id: "split-transfers",
-    label: "ค่าจองสินค้า · ฿6,000",
-    description: "ครั้งที่สามของการโอน ฿6,000 ในเดือนเดียวกัน ทำให้ยอดสะสมถึง ฿18,000",
-    settings: demoSettings,
-    history: [
-      { id: "demo-split-1", createdAt: "2026-10-03T09:00:00+07:00", recipientWatchStatus: "watched", amountBaht: 6_000 },
-      { id: "demo-split-2", createdAt: "2026-10-10T09:00:00+07:00", recipientWatchStatus: "watched", amountBaht: 6_000 },
-    ],
-    transfer: {
-      id: "demo-split-3",
-      createdAt: "2026-10-16T10:00:00+07:00",
-      ...demoSender,
-      recipient: { id: "niran", name: "นิรันดร์", maskedAccount: "•• 6392", watchStatus: "watched", risk: "unknown" },
-      amountBaht: 6_000,
-      purpose: "ค่าจองสินค้า",
-      zoneStatus: "inside",
-    },
-  },
-  {
-    id: "ordinary-high-value",
-    label: "ซื้อแล็ปท็อป · ฿22,000",
-    description: "ซื้อแล็ปท็อป ฿22,000 จริง แต่ยังต้องผ่านการทบทวนตามวงเงินที่ตั้งไว้",
-    settings: demoSettings,
-    history: [],
-    transfer: {
-      id: "demo-laptop-1",
-      createdAt: "2026-10-16T10:00:00+07:00",
-      ...demoSender,
-      recipient: { id: "demo-shop", name: "ร้านอุปกรณ์ไอทีตัวอย่าง", maskedAccount: "•• 1048", watchStatus: "watched", risk: "none" },
-      amountBaht: 22_000,
-      purpose: "ซื้อแล็ปท็อป",
-      zoneStatus: "unavailable",
-    },
-  },
-];
+export interface DemoScenario {
+  id: 'scam-deposit' | 'split-transfers' | 'laptop' | 'mom'
+  title: string
+  detail: string
+  recipientId: string
+  amountBaht: number
+}
+
+/** Prepared transfers on Home. Testers repeat the split transfer three times. */
+export const DEMO_SCENARIOS: readonly DemoScenario[] = [
+  { id: 'scam-deposit', title: 'ค่าจองสินค้า', detail: 'โอนให้นิรันดร์', recipientId: 'niran', amountBaht: 18_000 },
+  { id: 'split-transfers', title: 'โอนแบ่งจ่าย', detail: 'โอนให้นิรันดร์ ทำซ้ำ 3 ครั้ง', recipientId: 'niran', amountBaht: 6_000 },
+  { id: 'laptop', title: 'ซื้อแล็ปท็อป', detail: 'จ่ายร้านอุปกรณ์ไอที', recipientId: 'it-shop', amountBaht: 22_000 },
+  { id: 'mom', title: 'โอนให้แม่', detail: 'Trust Contact ของคุณ', recipientId: 'mom', amountBaht: 5_000 },
+]

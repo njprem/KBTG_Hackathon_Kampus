@@ -15,6 +15,8 @@ export default defineConfig({
     locale: 'th-TH',
     timezoneId: 'Asia/Bangkok',
     trace: 'retain-on-failure',
+    // Optional: point at a preinstalled Chromium instead of `npx playwright install chromium`.
+    launchOptions: process.env.PLAYWRIGHT_CHROMIUM_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH } : {},
   },
   projects: [{ name: 'phone' }],
   webServer: {
