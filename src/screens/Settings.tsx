@@ -2,10 +2,11 @@ import { Switch } from '@base-ui/react/switch'
 import { ToggleGroup } from '@base-ui/react/toggle-group'
 import { Toggle } from '@base-ui/react/toggle'
 import { MapPin, Plus, ShieldCheck, Users, WalletCards, X } from 'lucide-react'
-import { DEMO_RECIPIENTS, WATCH_PERIOD_DAYS, findRecipient, watchDaysLeft, type TrustGuardSettings, type TrustZoneStatus } from '../domain/trustguard'
+import { DEMO_RECIPIENTS, WATCH_PERIOD_DAYS, findRecipient, pendingContactSuggestions, pendingZoneSuggestions, toZonePlace, watchDaysLeft, type TrustGuardSettings, type TrustZoneStatus } from '../domain/trustguard'
 import { MEANING, ZONE_LABEL } from '../ui/copy'
 import { formatBahtShort } from '../ui/format'
 import { Avatar, Card, Heading, InfoDisclosure, cx } from '../ui/primitives'
+import { AiBadge, AiSuggestionRow, SuggestionCard, ZonePlaceRow } from '../ui/ZonePlaces'
 
 const LIMIT_PRESETS = [5_000, 10_000, 15_000, 20_000]
 const ZONES: TrustZoneStatus[] = ['inside', 'outside', 'unavailable']
@@ -15,10 +16,14 @@ export function SettingsScreen({ draft, now, onChange }: {
   now: string
   onChange: (next: TrustGuardSettings) => void
 }) {
-  const notInList = DEMO_RECIPIENTS.filter((recipient) => !draft.trustContacts.some((member) => member.recipientId === recipient.id))
+  const suggestions = pendingZoneSuggestions(draft.zonePlaces)
+  const contactSuggestions = pendingContactSuggestions(draft)
+  // AI-suggested accounts get their own row with a reason, so they are not repeated as plain chips.
+  const notInList = DEMO_RECIPIENTS.filter((recipient) => !draft.trustContacts.some((member) => member.recipientId === recipient.id) && !contactSuggestions.some((item) => item.recipientId === recipient.id))
+  const addContact = (recipientId: string) => onChange({ ...draft, trustContacts: [...draft.trustContacts, { recipientId, addedAt: now }] })
 
   return (
-    <div className="grid gap-3">
+    <div className="grid grid-cols-1 gap-3">
       <Heading eyebrow="การปกป้องของคุณ" title="ตั้งค่า TrustGuard" detail="เช็ก 3T ก่อนเงินออก ไม่ผ่าน 2 ใน 3 ข้อ จะพักไว้ 30 วินาที" />
 
       <Card className="p-4">
@@ -40,7 +45,27 @@ export function SettingsScreen({ draft, now, onChange }: {
 
       <Card className="p-4">
         <InfoDisclosure title="Trust Zone" label="Trust Zone แตะเพื่อดูความหมาย" icon={<MapPin size={19} className="text-brand" aria-hidden="true" />}>{MEANING.zone}</InfoDisclosure>
-        <p id="zone-label" className="mt-3 text-[13px] text-ink-muted">ตำแหน่งตอนนี้ (จำลองสำหรับการทดลอง)</p>
+        {draft.zonePlaces.length > 0 ? (
+          <ul className="mt-3 grid grid-cols-1 gap-2">
+            {draft.zonePlaces.map((place) => (
+              <ZonePlaceRow key={place.id} place={place} onRemove={() => onChange({ ...draft, zonePlaces: draft.zonePlaces.filter((item) => item.id !== place.id) })} />
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-3 rounded-2xl bg-canvas px-3.5 py-3 text-[13px] text-ink-muted">ยังไม่มีพื้นที่ใน Trust Zone</p>
+        )}
+        {suggestions.length > 0 && (
+          <div className="mt-3 grid grid-cols-1 gap-2">
+            <div className="flex items-center justify-between gap-2">
+              <p className="min-w-0 text-[12.5px] text-ink-faint">AI พบพื้นที่ที่คุณน่าจะใช้ประจำ</p>
+              <AiBadge />
+            </div>
+            {suggestions.map((suggestion) => (
+              <SuggestionCard key={suggestion.id} suggestion={suggestion} added={false} onToggle={() => onChange({ ...draft, zonePlaces: [...draft.zonePlaces, toZonePlace(suggestion)] })} />
+            ))}
+          </div>
+        )}
+        <p id="zone-label" className="mt-4 text-[13px] text-ink-muted">ตำแหน่งตอนนี้ (จำลองสำหรับการทดลอง)</p>
         <ToggleGroup
           value={[draft.zone]}
           onValueChange={(value) => { const next = value[0] as TrustZoneStatus | undefined; if (next) onChange({ ...draft, zone: next }) }}
@@ -82,6 +107,29 @@ export function SettingsScreen({ draft, now, onChange }: {
             )
           })}
         </ul>
+        {contactSuggestions.length > 0 && (
+          <div className="mt-3 grid grid-cols-1 gap-2">
+            <div className="flex items-center justify-between gap-2">
+              <p className="min-w-0 text-[12.5px] text-ink-faint">AI พบบัญชีที่คุณโอนให้บ่อย</p>
+              <AiBadge />
+            </div>
+            {contactSuggestions.map((suggestion) => {
+              const recipient = findRecipient(suggestion.recipientId)
+              return (
+                <AiSuggestionRow
+                  key={suggestion.recipientId}
+                  icon={<Avatar name={recipient.name} tone={DEMO_RECIPIENTS.indexOf(recipient)} />}
+                  title={recipient.name}
+                  reason={suggestion.reason}
+                  note={`เฝ้าดู ${WATCH_PERIOD_DAYS} วันก่อนเริ่มไม่นับยอด`}
+                  added={false}
+                  addLabel={`เพิ่ม${recipient.name}เป็น Trust Contact`}
+                  onAdd={() => addContact(suggestion.recipientId)}
+                />
+              )
+            })}
+          </div>
+        )}
         {notInList.length > 0 && (
           <div className="mt-3">
             <p className="text-[12.5px] text-ink-faint">เพิ่มคนที่ไว้ใจ (เฝ้าดู {WATCH_PERIOD_DAYS} วันก่อนเริ่มไม่นับยอด)</p>
@@ -90,7 +138,7 @@ export function SettingsScreen({ draft, now, onChange }: {
                 <button
                   key={recipient.id}
                   type="button"
-                  onClick={() => onChange({ ...draft, trustContacts: [...draft.trustContacts, { recipientId: recipient.id, addedAt: now }] })}
+                  onClick={() => addContact(recipient.id)}
                   className="flex min-h-10 items-center gap-1.5 rounded-full border border-dashed border-line-strong px-3.5 text-[13px] font-medium text-brand hover:bg-brand-tint"
                 >
                   <Plus size={15} aria-hidden="true" /> {recipient.name}

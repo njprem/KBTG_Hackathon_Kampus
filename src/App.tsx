@@ -1,19 +1,24 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { LazyMotion, MotionConfig, domAnimation, m } from 'motion/react'
-import { ArrowLeft, Home, RefreshCcw, Send, Settings2, ShieldAlert, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, Home, RefreshCcw, Send, Settings2, ShieldAlert, ShieldCheck, UserRoundCheck, UserRoundPlus } from 'lucide-react'
 import { ProcessingOverlay, TapRipples } from './ui/motion'
 import {
   DEMO_BALANCE_BAHT,
   DEMO_SETTINGS,
+  NEW_USER_SETTINGS,
   PAUSE_DELAY_MS,
   countedMonthTotal,
   evaluateTransfer,
   findRecipient,
+  suggestionsAfterTransfer,
+  toZonePlace,
   weakeningChanges,
   type LimitBaseline,
   type CompletedTransfer,
   type DemoScenario,
   type Evaluation,
+  type ContactSuggestion,
+  type ZoneSuggestion,
   type TrustGuardSettings,
 } from './domain/trustguard'
 import { BottomSheet } from './ui/BottomSheet'
@@ -23,10 +28,11 @@ import { HomeScreen } from './screens/Home'
 import { OutcomeScreen, type OutcomeKind } from './screens/Outcome'
 import { ReviewScreen } from './screens/Review'
 import { SettingsScreen } from './screens/Settings'
+import { SetupScreen } from './screens/Setup'
 import { SmartPauseSheet } from './screens/SmartPause'
 import { TransferScreen, amountError } from './screens/Transfer'
 
-type Screen = 'home' | 'transfer' | 'review' | 'outcome' | 'settings'
+type Screen = 'home' | 'transfer' | 'review' | 'outcome' | 'settings' | 'setup'
 
 interface Pause {
   open: boolean
@@ -40,16 +46,23 @@ const TITLES: Record<Screen, string> = {
   review: 'ตรวจสอบรายการ',
   outcome: 'สถานะรายการ',
   settings: 'ตั้งค่า TrustGuard',
+  setup: 'เปิดใช้ TrustGuard',
 }
 
 /** How long the ordinary "processing" cover stays up before the result or Smart Pause. */
 const CHECK_ANIMATION_MS = 600
 
-const cloneSettings = (settings: TrustGuardSettings): TrustGuardSettings => ({ ...settings, trustContacts: settings.trustContacts.map((member) => ({ ...member })) })
+const cloneSettings = (settings: TrustGuardSettings): TrustGuardSettings => ({
+  ...settings,
+  trustContacts: settings.trustContacts.map((member) => ({ ...member })),
+  zonePlaces: settings.zonePlaces.map((place) => ({ ...place })),
+})
 
 export default function App() {
   const phoneRef = useRef<HTMLDivElement>(null)
   const [screen, setScreen] = useState<Screen>('home')
+  /** Demo users: one who already set TrustGuard up, and a new one who has not turned it on yet. */
+  const [onboarded, setOnboarded] = useState(true)
   const [settings, setSettings] = useState<TrustGuardSettings>(() => cloneSettings(DEMO_SETTINGS))
   const [draftSettings, setDraftSettings] = useState<TrustGuardSettings>(() => cloneSettings(DEMO_SETTINGS))
   const [confirmWeaken, setConfirmWeaken] = useState(false)
@@ -58,6 +71,10 @@ export default function App() {
   const [baseline, setBaseline] = useState<LimitBaseline | null>(null)
   const [recipientId, setRecipientId] = useState('niran')
   const [amountInput, setAmountInput] = useState('')
+  /** Simulated place of the current transfer (set by a scenario); undefined uses the Settings location toggle. */
+  const [placeId, setPlaceId] = useState<string | undefined>(undefined)
+  /** AI suggestions captured when the last transfer finished, so they stay visible after the user accepts one. */
+  const [afterSuggestions, setAfterSuggestions] = useState<{ zone?: ZoneSuggestion; contact?: ContactSuggestion }>({})
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null)
   const [reviewAt, setReviewAt] = useState('')
   const [pause, setPause] = useState<Pause | null>(null)
@@ -84,9 +101,10 @@ export default function App() {
     phoneRef.current?.querySelector('main')?.scrollTo({ top: 0 })
   }
 
-  function startTransfer(nextRecipientId = recipientId, amount = '') {
+  function startTransfer(nextRecipientId = recipientId, amount = '', nextPlaceId?: string) {
     setRecipientId(nextRecipientId)
     setAmountInput(amount)
+    setPlaceId(nextPlaceId)
     setEvaluation(null)
     setPause(null)
     go('transfer')
@@ -94,7 +112,7 @@ export default function App() {
 
   /** Demo scenarios fill the transfer form; the user still reviews it before going on. */
   function startScenario(scenario: DemoScenario) {
-    startTransfer(scenario.recipientId, String(scenario.amountBaht))
+    startTransfer(scenario.recipientId, String(scenario.amountBaht), scenario.placeId)
   }
 
   function toReview() {
@@ -102,7 +120,7 @@ export default function App() {
     const createdAt = new Date().toISOString()
     setNowMs(Date.parse(createdAt))
     setReviewAt(createdAt)
-    setEvaluation(evaluateTransfer({ draft: { recipient, amountBaht, createdAt }, ledger, settings, baseline }))
+    setEvaluation(evaluateTransfer({ draft: { recipient, amountBaht, createdAt, placeId }, ledger, settings, baseline }))
     setPause(null)
     go('review')
   }
@@ -127,19 +145,25 @@ export default function App() {
       setBalance((value) => value - amountBaht)
       if (kind === 'continued') setBaseline({ monthKey: evaluation.monthKey, baht: evaluation.limit.monthTotalBaht })
     }
+    setAfterSuggestions(kind === 'cancelled' ? {} : suggestionsAfterTransfer(settings, recipientId, placeId))
     setOutcome(kind)
     setPause(null)
     go('outcome')
   }
 
-  function resetDemo() {
-    setSettings(cloneSettings(DEMO_SETTINGS))
-    setDraftSettings(cloneSettings(DEMO_SETTINGS))
+  /** Restores the demo for the given user (the current one by default). */
+  function resetDemo(asOnboarded = onboarded) {
+    const initial = asOnboarded ? DEMO_SETTINGS : NEW_USER_SETTINGS
+    setOnboarded(asOnboarded)
+    setSettings(cloneSettings(initial))
+    setDraftSettings(cloneSettings(initial))
     setBalance(DEMO_BALANCE_BAHT)
     setLedger([])
     setBaseline(null)
     setRecipientId('niran')
     setAmountInput('')
+    setPlaceId(undefined)
+    setAfterSuggestions({})
     setEvaluation(null)
     setPause(null)
     setConfirmWeaken(false)
@@ -149,6 +173,8 @@ export default function App() {
   }
 
   function openSettings() {
+    // Until TrustGuard is turned on, Settings is the setup flow.
+    if (!onboarded) return go('setup')
     setDraftSettings(cloneSettings(settings))
     setNowMs(Date.now())
     go('settings')
@@ -165,6 +191,26 @@ export default function App() {
     go('home')
   }
 
+  function finishSetup(next: TrustGuardSettings) {
+    setSettings(cloneSettings(next))
+    setDraftSettings(cloneSettings(next))
+    setOnboarded(true)
+    go('home')
+  }
+
+  /** Accepting an AI suggestion after a transfer; a new Trust Contact is still watched like any later addition. */
+  function acceptZone(suggestion: ZoneSuggestion) {
+    const next = { ...settings, zonePlaces: [...settings.zonePlaces, toZonePlace(suggestion)] }
+    setSettings(next)
+    setDraftSettings(cloneSettings(next))
+  }
+
+  function acceptContact(suggestion: ContactSuggestion) {
+    const next = { ...settings, trustContacts: [...settings.trustContacts, { recipientId: suggestion.recipientId, addedAt: new Date().toISOString() }] }
+    setSettings(next)
+    setDraftSettings(cloneSettings(next))
+  }
+
   function back() {
     if (screen === 'review') { setEvaluation(null); setPause(null); go('transfer') }
     else go('home')
@@ -172,7 +218,10 @@ export default function App() {
 
   const weakening = weakeningChanges(settings, draftSettings)
   const settingsDirty = JSON.stringify(settings) !== JSON.stringify(draftSettings)
-  const navActive = screen === 'home' ? 0 : screen === 'settings' ? 2 : 1
+  const navActive = screen === 'home' ? 0 : screen === 'settings' || screen === 'setup' ? 2 : 1
+  // Transfer, review and setup pin their actions to the bottom, just above the nav, so each step fits one screen.
+  const inTransferFlow = screen === 'transfer' || screen === 'review' || screen === 'setup'
+
 
   return (
     <LazyMotion features={domAnimation} strict>
@@ -187,15 +236,28 @@ export default function App() {
               <span className="grid size-7 place-items-center rounded-lg bg-white/15"><ShieldCheck size={17} aria-hidden="true" /></span>
               TrustGuard
             </span>
-            <span className="rounded-full border border-white/40 px-2.5 py-0.5 text-[11px]">ต้นแบบ v3.0 · ทดลอง</span>
+            <span className="rounded-full border border-white/40 px-2.5 py-0.5 text-[11px]">Prototype 3.0</span>
           </div>
 
           <header className="grid h-[68px] shrink-0 grid-cols-[44px_1fr_44px] items-center bg-canvas px-4 text-center">
-            <button type="button" onClick={back} disabled={screen === 'home' || checking} aria-label="ย้อนกลับ" className="grid size-11 place-items-center rounded-full bg-surface text-ink shadow-card transition-transform active:scale-90 disabled:invisible">
-              <ArrowLeft size={20} />
-            </button>
+            {screen === 'home' ? (
+              // Demo control: switch between the set-up user and a new user who has not turned TrustGuard on.
+              <button
+                type="button"
+                onClick={() => resetDemo(!onboarded)}
+                aria-label={onboarded ? 'สลับเป็นผู้ใช้ใหม่ที่ยังไม่เปิด TrustGuard' : 'สลับเป็นผู้ใช้ที่ตั้งค่า TrustGuard แล้ว'}
+                title={onboarded ? 'ผู้ใช้ที่ตั้งค่าแล้ว · แตะเพื่อสลับเป็นผู้ใช้ใหม่' : 'ผู้ใช้ใหม่ · แตะเพื่อสลับเป็นผู้ใช้ที่ตั้งค่าแล้ว'}
+                className={cx('grid size-11 place-items-center rounded-full shadow-card transition-transform active:scale-90', onboarded ? 'bg-surface text-brand' : 'bg-brand text-white')}
+              >
+                {onboarded ? <UserRoundCheck size={20} /> : <UserRoundPlus size={20} />}
+              </button>
+            ) : (
+              <button type="button" onClick={back} disabled={checking} aria-label="ย้อนกลับ" className="grid size-11 place-items-center rounded-full bg-surface text-ink shadow-card transition-transform active:scale-90 disabled:invisible">
+                <ArrowLeft size={20} />
+              </button>
+            )}
             <p className="text-[15px] font-semibold text-ink-muted">{TITLES[screen]}</p>
-            <button type="button" onClick={resetDemo} aria-label="เริ่มการทดลองใหม่ทั้งหมด" className="grid size-11 place-items-center rounded-full bg-surface text-ink-muted shadow-card transition-transform active:scale-90">
+            <button type="button" onClick={() => resetDemo()} aria-label="เริ่มการทดลองใหม่ทั้งหมด" className="grid size-11 place-items-center rounded-full bg-surface text-ink-muted shadow-card transition-transform active:scale-90">
               <RefreshCcw size={18} />
             </button>
           </header>
@@ -206,7 +268,7 @@ export default function App() {
               initial={{ opacity: 0, y: 14, filter: 'blur(6px)' }}
               animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
               transition={{ duration: 0.32, ease: [0.32, 0.72, 0, 1] }}
-              className={cx('px-5 pt-2', screen === 'settings' ? 'pb-44' : 'pb-28')}
+              className={cx('px-5 pt-2', inTransferFlow ? 'flex min-h-full flex-col pb-[calc(5.5rem+env(safe-area-inset-bottom))]' : screen === 'settings' ? 'pb-44' : 'pb-28')}
             >
               {screen === 'home' && (
                 <HomeScreen
@@ -219,6 +281,8 @@ export default function App() {
                   onTransfer={(id) => startTransfer(id)}
                   onScenario={startScenario}
                   onSettings={openSettings}
+                  onboarded={onboarded}
+                  onStartSetup={() => go('setup')}
                 />
               )}
               {screen === 'transfer' && (
@@ -243,8 +307,20 @@ export default function App() {
                 />
               )}
               {screen === 'outcome' && (
-                <OutcomeScreen kind={outcome} recipient={recipient} amountBaht={amountBaht} onAgain={() => startTransfer(recipientId, amountInput)} onHome={() => go('home')} />
+                <OutcomeScreen
+                  kind={outcome}
+                  recipient={recipient}
+                  amountBaht={amountBaht}
+                  suggestions={afterSuggestions}
+                  zoneAdded={afterSuggestions.zone !== undefined && settings.zonePlaces.some((place) => place.id === afterSuggestions.zone?.id)}
+                  contactAdded={afterSuggestions.contact !== undefined && settings.trustContacts.some((member) => member.recipientId === afterSuggestions.contact?.recipientId)}
+                  onAcceptZone={acceptZone}
+                  onAcceptContact={acceptContact}
+                  onAgain={() => startTransfer(recipientId, amountInput, placeId)}
+                  onHome={() => go('home')}
+                />
               )}
+              {screen === 'setup' && <SetupScreen now={nowIso} onFinish={finishSetup} />}
               {screen === 'settings' && <SettingsScreen draft={draftSettings} now={nowIso} onChange={setDraftSettings} />}
             </m.div>
           </main>

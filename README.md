@@ -28,7 +28,7 @@ A tap opens the transfer form already filled in; a badge on each card previews w
 | --- | --- |
 | ค่าจองสินค้า ฿18,000 to a new recipient | Paused: Trust Contact and Trust Limit fail |
 | โอนแบ่งจ่าย ฿6,000, repeated | First two show a one-line notice; the third is paused once the month total reaches ฿15,000 |
-| ซื้อแล็ปท็อป ฿22,000 to a shop | Paused, kept to measure friction on a legitimate purchase |
+| หมูปิ้งหน้าเซเว่น ฿45 at a place not yet in Trust Zone | Paused at first; afterwards the simulated AI suggests adding the place to Trust Zone and the shop as a Trust Contact, and the next purchase only shows a note |
 | โอนให้แม่ ฿5,000 (Trust Contact) | Passes and is not counted |
 
 The rules:
@@ -51,7 +51,7 @@ npm run e2e                        # every flow at phone width, starts its own d
 npm run e2e:report                 # HTML report with screenshots of each step
 ```
 
-`e2e/flows.spec.ts` covers the scam-style pause, (i) disclosure, cancel with the AOC 1441 hotline, the 30-second gate (with a fake clock), closing and reopening a pause, split transfers, manual entry matching the Home shortcut, continuing then not re-pausing a small transfer, the laptop purchase, quick transfer from Home, Trust Contact pass and 7-day watch, outside and unavailable Trust Zone, both weakening confirmations, and transfers above the balance.
+`e2e/flows.spec.ts` covers the scam-style pause, (i) disclosure, cancel with the AOC 1441 hotline, the 30-second gate (with a fake clock), closing and reopening a pause, split transfers, manual entry matching the Home shortcut, continuing then not re-pausing a small transfer, the laptop purchase, quick transfer from Home, Trust Contact pass and 7-day watch, outside and unavailable Trust Zone, both weakening confirmations, transfers above the balance, Transfer/Review/Smart Pause fitting 360x640, 390x664 and 375x812 screens, the new-user invitation and setup with AI Trust Zone suggestions, and AI suggestions in Settings.
 
 ## Tester and hosting notes
 

@@ -79,9 +79,10 @@ export function InfoDisclosure({ title, icon, children, label }: { title: ReactN
   )
 }
 
-export function Steps({ current, total = 2 }: { current: number; total?: number }) {
+/** `dense` tightens spacing on short phones (see the `snug` variant in styles.css). */
+export function Steps({ current, total = 2, dense = false }: { current: number; total?: number; dense?: boolean }) {
   return (
-    <div className="mb-6 flex gap-1.5" role="img" aria-label={`ขั้นตอน ${current} จาก ${total}`}>
+    <div className={cx('mb-6 flex gap-1.5', dense && 'snug:mb-3 short:mb-2')} role="img" aria-label={`ขั้นตอน ${current} จาก ${total}`}>
       {Array.from({ length: total }, (_, index) => (
         <span key={index} className={cx('h-1 flex-1 rounded-full', index < current ? 'bg-brand-accent' : 'bg-line')} />
       ))}
@@ -89,12 +90,13 @@ export function Steps({ current, total = 2 }: { current: number; total?: number 
   )
 }
 
-export function Heading({ eyebrow, title, detail, centered = false }: { eyebrow?: string; title: string; detail?: string; centered?: boolean }) {
+/** `dense` keeps only the title on short phones, where the header already names the step. */
+export function Heading({ eyebrow, title, detail, centered = false, dense = false }: { eyebrow?: string; title: string; detail?: string; centered?: boolean; dense?: boolean }) {
   return (
-    <div className={cx('mb-6', centered && 'text-center')}>
-      {eyebrow && <p className="text-xs font-semibold tracking-wide text-brand-accent">{eyebrow}</p>}
-      <h1 className="mt-1 text-[26px] font-bold leading-tight tracking-tight text-ink">{title}</h1>
-      {detail && <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">{detail}</p>}
+    <div className={cx('mb-6', centered && 'text-center', dense && 'snug:mb-3 short:mb-2')}>
+      {eyebrow && <p className={cx('mb-1 text-xs font-semibold tracking-wide text-brand-accent', dense && 'snug:hidden')}>{eyebrow}</p>}
+      <h1 className="text-[26px] font-bold leading-tight tracking-tight text-ink">{title}</h1>
+      {detail && <p className={cx('mt-1.5 text-sm leading-relaxed text-ink-muted', dense && 'snug:hidden')}>{detail}</p>}
     </div>
   )
 }
@@ -107,7 +109,7 @@ export function Avatar({ name, tone = 0, size = 'md' }: { name: string; tone?: n
       aria-hidden="true"
       className={cx(
         'grid shrink-0 place-items-center rounded-full font-semibold',
-        size === 'xl' ? 'size-14 text-xl' : size === 'lg' ? 'size-12 text-lg' : 'size-10 text-[15px]',
+        size === 'xl' ? 'size-14 text-xl snug:size-12 snug:text-lg' : size === 'lg' ? 'size-12 text-lg' : 'size-10 text-[15px]',
         avatarTones[tone % avatarTones.length],
       )}
     >

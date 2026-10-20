@@ -1,5 +1,10 @@
 @import 'tailwindcss';
 
+/* Phones up to 860 px tall: compact transfer and review so they fit above the bottom nav. */
+@custom-variant snug (@media (max-height: 860px));
+/* Phones up to 760 px tall: tighter still, and Smart Pause fits without scrolling. Registered after `snug` so it wins. */
+@custom-variant short (@media (max-height: 760px));
+
 /*
  * TrustGuard v3 design tokens. Calm teal banking feel for ordinary screens;
  * red is reserved for the frame around the 3T checklist (mentor feedback).

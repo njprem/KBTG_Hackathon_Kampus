@@ -8,6 +8,7 @@ import {
   findRecipient,
   getBangkokMonthKey,
   salaryShare,
+  setupContactMember,
   watchDaysLeft,
   weakeningChanges,
 } from '../src/domain/trustguard.ts'
@@ -88,7 +89,7 @@ test('after continuing past a pause, small transfers that month do not pause aga
   const small = evaluateTransfer({ draft: draft('niran', 20), ledger, settings: settings(), baseline })
   assert.equal(small.limit.state, 'pass')
   assert.equal(small.decision, 'notice')
-  const big = evaluateTransfer({ draft: draft('it-shop', 15_000), ledger, settings: settings(), baseline })
+  const big = evaluateTransfer({ draft: draft('pork-stall', 15_000), ledger, settings: settings(), baseline })
   assert.equal(big.limit.state, 'fail')
   assert.equal(big.decision, 'pause')
 })
@@ -116,4 +117,12 @@ test('salary share is a whole percent', () => {
 test('invalid amounts are rejected', () => {
   assert.throws(() => evaluateTransfer({ draft: draft('niran', 0), ledger: [], settings: settings(), baseline: null }))
   assert.throws(() => evaluateTransfer({ draft: draft('niran', 1.5), ledger: [], settings: settings(), baseline: null }))
+})
+
+test('a Trust Contact chosen during first setup is trusted immediately', () => {
+  const now = '2026-10-20T10:00:00+07:00'
+  const member = setupContactMember('mom', now)
+  assert.equal(watchDaysLeft(member, now), 0)
+  const later = { recipientId: 'min', addedAt: now }
+  assert.equal(watchDaysLeft(later, now), WATCH_PERIOD_DAYS)
 })

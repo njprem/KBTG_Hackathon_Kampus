@@ -34,11 +34,11 @@ export function TransferScreen({ recipientId, amountInput, balance, settings, on
 
   return (
     <>
-      <Steps current={1} />
-      <Heading eyebrow="โอนเงิน" title="โอนให้ใคร เท่าไร" detail="เลือกผู้รับสมมติที่เตรียมไว้สำหรับการทดลอง" />
+      <Steps current={1} dense />
+      <Heading dense eyebrow="โอนเงิน" title="โอนให้ใคร เท่าไร" detail="เลือกผู้รับสมมติที่เตรียมไว้สำหรับการทดลอง" />
 
-      <Card className="p-4">
-        <h2 id="recipient-label" className="mb-3 text-[13px] font-semibold text-ink-muted">ผู้รับ</h2>
+      <Card className="p-4 snug:p-3">
+        <h2 id="recipient-label" className="mb-3 text-[13px] snug:mb-2 font-semibold text-ink-muted">ผู้รับ</h2>
         <RadioGroup value={recipientId} onValueChange={(value) => onRecipient(String(value))} aria-labelledby="recipient-label" className="grid grid-cols-4 gap-1">
           {DEMO_RECIPIENTS.map((recipient, index) => {
             const inList = settings.trustContacts.some((member) => member.recipientId === recipient.id)
@@ -61,7 +61,8 @@ export function TransferScreen({ recipientId, amountInput, balance, settings, on
             )
           })}
         </RadioGroup>
-        <div className="mt-3 flex items-center gap-3 rounded-2xl bg-canvas px-3.5 py-3">
+        {/* Compact phones skip this row; review shows the account again before anything is sent. */}
+        <div className="mt-3 flex items-center gap-3 rounded-2xl bg-canvas px-3.5 py-3 snug:hidden">
           <span className="grid size-9 shrink-0 place-items-center rounded-full bg-surface text-brand shadow-card"><CreditCard size={17} aria-hidden="true" /></span>
           <span className="min-w-0 flex-1">
             <span className="flex items-center gap-1.5 text-[14px] font-semibold">
@@ -73,7 +74,7 @@ export function TransferScreen({ recipientId, amountInput, balance, settings, on
         </div>
       </Card>
 
-      <Card className="mt-3 p-4">
+      <Card className="mt-3 p-4 snug:mt-2 snug:p-3">
         <label htmlFor="amount" className="text-[13px] font-semibold text-ink-muted">จำนวนเงิน (บาท)</label>
         <div className={cx('mt-2 flex items-center gap-2 rounded-2xl bg-canvas px-3.5 py-2 ring-2 transition-shadow focus-within:ring-brand-accent', error ? 'ring-fail' : 'ring-transparent')}>
           <span className="text-[26px] font-semibold text-brand" aria-hidden="true">฿</span>
@@ -101,7 +102,7 @@ export function TransferScreen({ recipientId, amountInput, balance, settings, on
         </p>
       </Card>
 
-      <div className="mt-6">
+      <div className="mt-auto pt-6 snug:pt-4">
         <Button disabled={!canContinue} onClick={onNext}>ตรวจสอบรายการ <ArrowRight size={18} /></Button>
       </div>
     </>

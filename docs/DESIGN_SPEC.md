@@ -9,7 +9,7 @@ The mentor's top priority for this round was a beautiful UI.
 The prototype should feel like a calm, modern Thai banking app: a clear balance, quick transfer, a short review step and a clear result.
 TrustGuard appears only when it has something to say, and its warning stays compact (mentor: the warning does not need to be large).
 Keep the TrustGuard name in the header, feature names in English (Trust Zone, Trust Contact, Trust Limit, Smart Pause) and everything else in Thai.
-Every account, person, balance and outcome is fictional, and a small "ต้นแบบ v3.0 · ทดลอง" label stays visible.
+Every account, person, balance and outcome is fictional, and a small "Prototype 3.0" label stays visible.
 
 ### Brand boundary
 
@@ -42,7 +42,7 @@ Motion follows a reference banking app the team chose; durations stay short and 
 | Confirm transfer | The screen blurs behind a white circle with a spinning arc and "กำลังทำรายการ / กรุณารอสักครู่" for 0.6 s, then shows the result or Smart Pause. The copy is an ordinary transaction message, not a TrustGuard message. Reopening an existing pause skips it. |
 | Bottom sheets | Slide up with a blurred backdrop and can be swiped down. Smart Pause has a round badge across its top edge with a soft pulse. |
 | Outcome | The result card rises in with a badge across its top edge (green check, or teal cross when cancelled). |
-| Navigation | The active pill slides between Home, Transfer and Settings. |
+| Navigation | The active pill slides between Home, Transfer and Settings. It stays on every page (owner decision, 20 October 2026). |
 | Trust Limit ring | Draws from empty to the current share on Home. |
 | (i) rows | Expand with a height transition; the mark scales slightly when open. |
 
@@ -51,11 +51,22 @@ Motion follows a reference banking app the team chose; durations stay short and 
 | Screen | Content |
 | --- | --- |
 | Home | Greeting, balance card with hide toggle, **ลองฟีเจอร์ TrustGuard** (four large scenario cards, numbered, with a live badge: จะถูกพัก / มีคำเตือน / โอนผ่าน / ยอดเงินไม่พอ), quick transfer avatar row, TrustGuard 3T card with Trust Limit ring, recent transfers. |
-| Transfer | Step 1 of 2. Recipient avatar row (radio group, Trust Contact badge), selected recipient account card, amount field with balance and errors. |
-| Review | Step 2 of 2. Amount, from/to rows and simulated location. One failed check adds an amber note here. |
+| Transfer | Step 1 of 2. Recipient avatar row (radio group, Trust Contact badge), selected recipient account card, amount field with balance and errors. The action is pinned just above the bottom nav. On phones up to 860 px tall the account row is hidden; review shows it. |
+| Review | Step 2 of 2. Amount, from/to rows and simulated location. One failed check adds an amber note here, and the send icon is hidden to make room. The actions are pinned just above the bottom nav, side by side on phones up to 860 px tall. |
 | Smart Pause | Badge, "TrustGuard พักรายการนี้ไว้ก่อน" pill, title "เงินยังไม่ถูกโอน", "ไม่ผ่าน N จาก 3 ข้อ", amount card with salary share, red-framed 3T checklist, amber scam line "ถ้ามีคนบอกให้กดข้ามหน้านี้ คนนั้นคือมิจฉาชีพ", Cancel (primary), Continue with countdown, demo-only skip link. |
 | Outcome | Completed, continued or cancelled card with amount and recipient; AOC 1441 hotline when the user was paused; "โอนรายการเดิมอีกครั้ง" reopens the transfer form with the same recipient and amount. |
 | Settings | On/off switch, then Trust Zone, Trust Contact and Trust Limit sections in that order, each with an (i) disclosure; save button above the floating nav. |
+
+## New user setup and AI suggestions (20 October 2026)
+
+- The left header button on Home switches between the set-up demo user and a new user who has not turned TrustGuard on.
+- The new user's Home shows a "เปิดใช้ TrustGuard ไหม?" card; transfers are not checked until setup ends.
+- Setup has four steps: Trust Zone, Trust Contact, Trust Limit, summary.
+- Trust Zone shows simulated AI suggestions: the sign-up address turned into an area, and places the user often transfers from. The user adds each one explicitly.
+- People chosen as Trust Contact during first setup count at once; people added later are watched for 7 days.
+- After a finished (not cancelled) transfer, an "AI พบว่าคุณโอนแบบนี้บ่อย" card can offer to add the place to Trust Zone and the recipient as a Trust Contact. It is never offered during a pause.
+- Settings lists Trust Zone places with their source and shows AI suggestions for places and accounts.
+- All AI output is fixed demo data; no real address, location or model is used.
 
 ## Demo affordances
 
@@ -68,5 +79,8 @@ Motion follows a reference banking app the team chose; durations stay short and 
 - Touch targets at least 44 px; visible focus ring on every control.
 - Thai text wraps cleanly at 360-430 px widths; long recipient names truncate in avatar rows.
 - Bottom content clears the floating navigation.
+- Transfer, Review and Smart Pause fit one screen without scrolling from 360x640 up, with the bottom nav visible (owner decision, 20 October 2026).
+  The `snug` variant (up to 860 px tall) compacts Transfer and Review; `short` (up to 760 px) tightens further and compacts Smart Pause.
+- Smart Pause (i) explanations open as a floating card over the list, one at a time, so they never add scrolling.
 - Smart Pause scrolls on short screens and traps focus.
 - Run `npm run e2e` and look at the screenshots in the report after any visual change.

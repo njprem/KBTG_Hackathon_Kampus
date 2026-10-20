@@ -23,11 +23,30 @@ export interface TrustContactMember {
   addedAt: string
 }
 
+/** Where a Trust Zone place came from: the sign-up address, or the AI reading where the user often transfers. */
+export type ZonePlaceSource = 'address' | 'frequent'
+
+/** A coarse area the user transfers from regularly. Never an exact coordinate. */
+export interface TrustZonePlace {
+  id: string
+  label: string
+  area: string
+  source: ZonePlaceSource
+}
+
+/** A place the (simulated) AI proposes; the user decides whether to add it. */
+export interface ZoneSuggestion extends TrustZonePlace {
+  /** Plain-language reason shown to the user, e.g. how often they transferred there. */
+  reason: string
+}
+
 export interface TrustGuardSettings {
   enabled: boolean
   monthlyLimitBaht: number
   trustContacts: TrustContactMember[]
-  /** Simulated in the prototype; a real product would learn usual transfer locations. */
+  /** Places the user accepted into Trust Zone. Descriptive in the prototype; the check uses `zone`. */
+  zonePlaces: TrustZonePlace[]
+  /** Simulated current location status; a real product would compare the device location with `zonePlaces`. */
   zone: TrustZoneStatus
 }
 
@@ -55,11 +74,15 @@ export interface TransferDraft {
   recipient: Recipient
   amountBaht: number
   createdAt: string
+  /** Simulated place the sender is at (a known place id). Without it, the Settings location toggle is used. */
+  placeId?: string
 }
 
 export interface ZoneCheck {
   state: CheckState
   status: TrustZoneStatus
+  /** Name of the simulated place, when the transfer came with one. */
+  placeLabel?: string
 }
 
 export interface ContactCheck {
@@ -134,6 +157,14 @@ export function watchDaysLeft(member: TrustContactMember, now: string): number {
   return left > 0 ? Math.ceil(left / DAY_MS) : 0
 }
 
+/**
+ * A Trust Contact chosen during first-time setup counts immediately (owner decision, 20 October 2026).
+ * The watch period guards later additions, which is when a scammer would coach a victim to add their account.
+ */
+export function setupContactMember(recipientId: string, now: string): TrustContactMember {
+  return { recipientId, addedAt: new Date(timestamp(now) - WATCH_PERIOD_DAYS * DAY_MS).toISOString() }
+}
+
 /** A recipient is effectively trusted only when in the Trust Contact and past the watch period. */
 export function isEffectivelyTrusted(settings: TrustGuardSettings, recipientId: string, now: string): boolean {
   const member = settings.trustContacts.find((item) => item.recipientId === recipientId)
@@ -165,10 +196,16 @@ export function evaluateTransfer(input: {
   const daysLeft = member ? watchDaysLeft(member, now) : 0
   const trusted = member !== undefined && daysLeft === 0
 
+  // A transfer made at a known place is inside only if that place is in the user's Trust Zone.
+  const place = draft.placeId ? findPlace(draft.placeId) : undefined
+  const zoneStatus: TrustZoneStatus = draft.placeId
+    ? settings.zonePlaces.some((item) => item.id === draft.placeId) ? 'inside' : 'outside'
+    : settings.zone
   const zone: ZoneCheck = {
-    status: settings.zone,
+    status: zoneStatus,
     // Being inside never clears another check; unavailable location is not itself suspicious.
-    state: settings.zone === 'outside' ? 'fail' : settings.zone === 'inside' ? 'pass' : 'unknown',
+    state: zoneStatus === 'outside' ? 'fail' : zoneStatus === 'inside' ? 'pass' : 'unknown',
+    ...(place && { placeLabel: place.label }),
   }
   const contact: ContactCheck = { state: trusted ? 'pass' : 'fail', inList: member !== undefined, watchDaysLeft: daysLeft }
 
@@ -214,7 +251,7 @@ export const DEMO_SENDER = { name: 'พลอย', maskedAccount: '•• 4821' 
 
 export const DEMO_RECIPIENTS: readonly Recipient[] = [
   { id: 'niran', name: 'นิรันดร์', maskedAccount: '•• 6392', kind: 'person', note: 'ผู้ขายออนไลน์' },
-  { id: 'it-shop', name: 'ร้านอุปกรณ์ไอทีตัวอย่าง', maskedAccount: '•• 1048', kind: 'merchant', note: 'ร้านค้า' },
+  { id: 'pork-stall', name: 'ร้านหมูปิ้งป้าแดง', maskedAccount: '•• 1048', kind: 'merchant', note: 'ร้านหมูปิ้งหน้าเซเว่น' },
   { id: 'mom', name: 'แม่', maskedAccount: '•• 2275', kind: 'person', note: 'ครอบครัว' },
   { id: 'min', name: 'มิน', maskedAccount: '•• 7730', kind: 'person', note: 'เพื่อนสนิท' },
 ]
@@ -225,6 +262,60 @@ export function findRecipient(id: string): Recipient {
   return recipient
 }
 
+/** Fictional address the user gave when opening the account; the simulated AI turns it into a Trust Zone area. */
+export const DEMO_SIGNUP_ADDRESS = '88/8 หมู่บ้านตัวอย่าง ซอยลาดพร้าว 71 เขตวังทองหลาง กรุงเทพฯ'
+
+/**
+ * Simulated AI output. A real product would geocode the sign-up address into a coarse area
+ * and cluster the locations of past transfers; here the results are fixed demo data.
+ */
+export const ZONE_SUGGESTIONS: readonly ZoneSuggestion[] = [
+  { id: 'home', label: 'บ้าน', area: 'ลาดพร้าว 71 · รัศมี 1 กม.', source: 'address', reason: 'แปลงจากที่อยู่ตอนเปิดบัญชี' },
+  { id: 'office', label: 'ที่ทำงาน', area: 'อโศก · รัศมี 1 กม.', source: 'frequent', reason: 'โอน 14 ครั้งใน 30 วัน ส่วนใหญ่ช่วงพักเที่ยง' },
+  { id: 'seven', label: 'หน้าเซเว่น ซอยอารีย์ 1', area: 'อารีย์ · รัศมี 500 ม.', source: 'frequent', reason: 'จ่ายร้านหมูปิ้งที่นี่ 9 ครั้งใน 3 สัปดาห์' },
+]
+
+function findPlace(id: string): TrustZonePlace | undefined {
+  return ZONE_SUGGESTIONS.find((item) => item.id === id)
+}
+
+/** A recipient the (simulated) AI proposes as a Trust Contact because the user pays them often. */
+export interface ContactSuggestion {
+  recipientId: string
+  reason: string
+}
+
+/** Simulated AI output from past transfers; fixed demo data. */
+export const CONTACT_SUGGESTIONS: readonly ContactSuggestion[] = [
+  { recipientId: 'pork-stall', reason: 'โอน 9 ครั้งใน 3 สัปดาห์ ครั้งละไม่เกิน ฿60' },
+]
+
+/** Contact suggestions for people or shops not already in Trust Contact. */
+export function pendingContactSuggestions(settings: TrustGuardSettings): ContactSuggestion[] {
+  return CONTACT_SUGGESTIONS.filter((suggestion) => !settings.trustContacts.some((member) => member.recipientId === suggestion.recipientId))
+}
+
+/**
+ * What the AI offers after a transfer: the place, if the user often transfers there and it is not in Trust Zone,
+ * and the recipient, if the user often pays them and they are not a Trust Contact. Offered only once the transfer
+ * is finished, never during a pause, so it cannot be used to talk someone past a warning.
+ */
+export function suggestionsAfterTransfer(settings: TrustGuardSettings, recipientId: string, placeId?: string): { zone?: ZoneSuggestion; contact?: ContactSuggestion } {
+  const zone = placeId ? pendingZoneSuggestions(settings.zonePlaces).find((item) => item.id === placeId && item.source === 'frequent') : undefined
+  const contact = pendingContactSuggestions(settings).find((item) => item.recipientId === recipientId)
+  return { ...(zone && { zone }), ...(contact && { contact }) }
+}
+
+/** Suggestions the user has not accepted yet, in display order. */
+export function pendingZoneSuggestions(places: readonly TrustZonePlace[]): ZoneSuggestion[] {
+  return ZONE_SUGGESTIONS.filter((suggestion) => !places.some((place) => place.id === suggestion.id))
+}
+
+/** Accepting a suggestion stores the place without the AI's reason text. */
+export function toZonePlace({ id, label, area, source }: ZoneSuggestion): TrustZonePlace {
+  return { id, label, area, source }
+}
+
 /** Initial settings; Trust Contact members were added long ago so they are past the watch period. */
 export const DEMO_SETTINGS: TrustGuardSettings = {
   enabled: true,
@@ -233,21 +324,34 @@ export const DEMO_SETTINGS: TrustGuardSettings = {
     { recipientId: 'mom', addedAt: '2026-01-05T09:00:00+07:00' },
     { recipientId: 'min', addedAt: '2026-03-12T09:00:00+07:00' },
   ],
+  zonePlaces: ZONE_SUGGESTIONS.slice(0, 2).map(toZonePlace),
+  zone: 'inside',
+}
+
+/** A user who has not turned TrustGuard on yet: nothing is checked until they finish setup. */
+export const NEW_USER_SETTINGS: TrustGuardSettings = {
+  enabled: false,
+  monthlyLimitBaht: 15_000,
+  trustContacts: [],
+  zonePlaces: [],
   zone: 'inside',
 }
 
 export interface DemoScenario {
-  id: 'scam-deposit' | 'split-transfers' | 'laptop' | 'mom'
+  id: 'scam-deposit' | 'split-transfers' | 'pork' | 'mom'
   title: string
   detail: string
   recipientId: string
   amountBaht: number
+  /** Simulated place the sender is at for this scenario. */
+  placeId?: string
 }
 
 /** Prepared transfers on Home. Testers repeat the split transfer three times. */
 export const DEMO_SCENARIOS: readonly DemoScenario[] = [
   { id: 'scam-deposit', title: 'ค่าจองสินค้า', detail: 'โอนให้นิรันดร์', recipientId: 'niran', amountBaht: 18_000 },
   { id: 'split-transfers', title: 'โอนแบ่งจ่าย', detail: 'โอนให้นิรันดร์ ทำซ้ำ 3 ครั้ง', recipientId: 'niran', amountBaht: 6_000 },
-  { id: 'laptop', title: 'ซื้อแล็ปท็อป', detail: 'จ่ายร้านอุปกรณ์ไอที', recipientId: 'it-shop', amountBaht: 22_000 },
+  // A tiny everyday purchase at a place not yet in Trust Zone: paused at first, then the AI suggests trusting it.
+  { id: 'pork', title: 'หมูปิ้งหน้าเซเว่น', detail: 'จ่ายร้านหมูปิ้งป้าแดง', recipientId: 'pork-stall', amountBaht: 45, placeId: 'seven' },
   { id: 'mom', title: 'โอนให้แม่', detail: 'Trust Contact ของคุณ', recipientId: 'mom', amountBaht: 5_000 },
 ]
