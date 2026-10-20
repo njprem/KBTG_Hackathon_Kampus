@@ -1,8 +1,8 @@
 import { Switch } from '@base-ui/react/switch'
 import { ToggleGroup } from '@base-ui/react/toggle-group'
 import { Toggle } from '@base-ui/react/toggle'
-import { MapPin, Plus, ShieldCheck, Users, WalletCards, X } from 'lucide-react'
-import { DEMO_RECIPIENTS, WATCH_PERIOD_DAYS, findRecipient, pendingContactSuggestions, pendingZoneSuggestions, toZonePlace, watchDaysLeft, type TrustGuardSettings, type TrustZoneStatus } from '../domain/trustguard'
+import { MapPin, Plus, ShieldCheck, Store, Users, WalletCards, X } from 'lucide-react'
+import { DEMO_RECIPIENTS, WATCH_PERIOD_DAYS, findRecipient, pendingContactSuggestions, pendingZoneSuggestions, toZonePlace, watchDaysLeft, type Recipient, type TrustGuardSettings, type TrustZoneStatus } from '../domain/trustguard'
 import { MEANING, ZONE_LABEL } from '../ui/copy'
 import { formatBahtShort } from '../ui/format'
 import { Avatar, Card, Heading, InfoDisclosure, cx } from '../ui/primitives'
@@ -17,10 +17,7 @@ export function SettingsScreen({ draft, now, onChange }: {
   onChange: (next: TrustGuardSettings) => void
 }) {
   const suggestions = pendingZoneSuggestions(draft.zonePlaces)
-  const contactSuggestions = pendingContactSuggestions(draft)
   // AI-suggested accounts get their own row with a reason, so they are not repeated as plain chips.
-  const notInList = DEMO_RECIPIENTS.filter((recipient) => !draft.trustContacts.some((member) => member.recipientId === recipient.id) && !contactSuggestions.some((item) => item.recipientId === recipient.id))
-  const addContact = (recipientId: string) => onChange({ ...draft, trustContacts: [...draft.trustContacts, { recipientId, addedAt: now }] })
 
   return (
     <div className="grid grid-cols-1 gap-3">
@@ -80,74 +77,8 @@ export function SettingsScreen({ draft, now, onChange }: {
         </ToggleGroup>
       </Card>
 
-      <Card className="p-4">
-        <InfoDisclosure title="Trust Contact" label="Trust Contact แตะเพื่อดูความหมาย" icon={<Users size={19} className="text-brand" aria-hidden="true" />}>{MEANING.contact}</InfoDisclosure>
-        <ul className="mt-3 grid gap-2">
-          {draft.trustContacts.map((member) => {
-            const recipient = findRecipient(member.recipientId)
-            const daysLeft = watchDaysLeft(member, now)
-            return (
-              <li key={member.recipientId} className="flex items-center gap-3 rounded-2xl bg-canvas px-3 py-2.5">
-                <Avatar name={recipient.name} tone={DEMO_RECIPIENTS.indexOf(recipient)} />
-                <span className="min-w-0 flex-1">
-                  <span className="block text-[14.5px] font-semibold">{recipient.name}</span>
-                  <span className={cx('block text-[12.5px]', daysLeft > 0 ? 'text-caution' : 'text-ink-muted')}>
-                    {daysLeft > 0 ? `เพิ่งเพิ่ม · ยังนับยอดอีก ${daysLeft} วัน` : `${recipient.note} · ${recipient.maskedAccount}`}
-                  </span>
-                </span>
-                <button
-                  type="button"
-                  aria-label={`เอา${recipient.name}ออกจาก Trust Contact`}
-                  onClick={() => onChange({ ...draft, trustContacts: draft.trustContacts.filter((item) => item.recipientId !== member.recipientId) })}
-                  className="grid size-10 place-items-center rounded-full text-ink-faint hover:bg-surface hover:text-ink"
-                >
-                  <X size={18} />
-                </button>
-              </li>
-            )
-          })}
-        </ul>
-        {contactSuggestions.length > 0 && (
-          <div className="mt-3 grid grid-cols-1 gap-2">
-            <div className="flex items-center justify-between gap-2">
-              <p className="min-w-0 text-[12.5px] text-ink-faint">AI พบบัญชีที่คุณโอนให้บ่อย</p>
-              <AiBadge />
-            </div>
-            {contactSuggestions.map((suggestion) => {
-              const recipient = findRecipient(suggestion.recipientId)
-              return (
-                <AiSuggestionRow
-                  key={suggestion.recipientId}
-                  icon={<Avatar name={recipient.name} tone={DEMO_RECIPIENTS.indexOf(recipient)} />}
-                  title={recipient.name}
-                  reason={suggestion.reason}
-                  note={`เฝ้าดู ${WATCH_PERIOD_DAYS} วันก่อนเริ่มไม่นับยอด`}
-                  added={false}
-                  addLabel={`เพิ่ม${recipient.name}เป็น Trust Contact`}
-                  onAdd={() => addContact(suggestion.recipientId)}
-                />
-              )
-            })}
-          </div>
-        )}
-        {notInList.length > 0 && (
-          <div className="mt-3">
-            <p className="text-[12.5px] text-ink-faint">เพิ่มคนที่ไว้ใจ (เฝ้าดู {WATCH_PERIOD_DAYS} วันก่อนเริ่มไม่นับยอด)</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {notInList.map((recipient) => (
-                <button
-                  key={recipient.id}
-                  type="button"
-                  onClick={() => addContact(recipient.id)}
-                  className="flex min-h-10 items-center gap-1.5 rounded-full border border-dashed border-line-strong px-3.5 text-[13px] font-medium text-brand hover:bg-brand-tint"
-                >
-                  <Plus size={15} aria-hidden="true" /> {recipient.name}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </Card>
+      <TrustPeopleCard kind="person" draft={draft} now={now} onChange={onChange} />
+      <TrustPeopleCard kind="merchant" draft={draft} now={now} onChange={onChange} />
 
       <Card className="p-4">
         <InfoDisclosure title="Trust Limit" label="Trust Limit แตะเพื่อดูความหมาย" icon={<WalletCards size={19} className="text-brand" aria-hidden="true" />}>{MEANING.limit}</InfoDisclosure>
@@ -166,5 +97,106 @@ export function SettingsScreen({ draft, now, onChange }: {
         </ToggleGroup>
       </Card>
     </div>
+  )
+}
+
+const PEOPLE_CARDS = {
+  person: { title: 'Trust Contact', icon: Users, meaning: MEANING.contact, noun: 'คนที่ไว้ใจ', empty: 'ยังไม่มีคนใน Trust Contact', ai: 'AI พบคนที่คุณโอนให้บ่อย' },
+  merchant: { title: 'Trust List', icon: Store, meaning: MEANING.list, noun: 'ร้านประจำ', empty: 'ยังไม่มีร้านใน Trust List', ai: 'AI พบร้านที่คุณจ่ายบ่อย' },
+} as const
+
+/**
+ * People (Trust Contact) and shops (Trust List) are shown as separate cards.
+ * Both live in the same trusted list underneath, so the 3T rule and the watch period are the same.
+ */
+function TrustPeopleCard({ kind, draft, now, onChange }: {
+  kind: Recipient['kind']
+  draft: TrustGuardSettings
+  now: string
+  onChange: (next: TrustGuardSettings) => void
+}) {
+  const copy = PEOPLE_CARDS[kind]
+  const ofKind = (recipientId: string) => findRecipient(recipientId).kind === kind
+  const members = draft.trustContacts.filter((member) => ofKind(member.recipientId))
+  const suggestions = pendingContactSuggestions(draft).filter((item) => ofKind(item.recipientId))
+  // AI-suggested accounts get their own row with a reason, so they are not repeated as plain chips.
+  const notInList = DEMO_RECIPIENTS.filter((recipient) => recipient.kind === kind
+    && !draft.trustContacts.some((member) => member.recipientId === recipient.id)
+    && !suggestions.some((item) => item.recipientId === recipient.id))
+  const add = (recipientId: string) => onChange({ ...draft, trustContacts: [...draft.trustContacts, { recipientId, addedAt: now }] })
+  const Icon = copy.icon
+  return (
+    <Card className="p-4">
+      <InfoDisclosure title={copy.title} label={`${copy.title} แตะเพื่อดูความหมาย`} icon={<Icon size={19} className="text-brand" aria-hidden="true" />}>{copy.meaning}</InfoDisclosure>
+      {members.length > 0 ? (
+        <ul className="mt-3 grid grid-cols-1 gap-2">
+          {members.map((member) => {
+            const recipient = findRecipient(member.recipientId)
+            const daysLeft = watchDaysLeft(member, now)
+            return (
+              <li key={member.recipientId} className="flex items-center gap-3 rounded-2xl bg-canvas px-3 py-2.5">
+                <Avatar name={recipient.name} tone={DEMO_RECIPIENTS.indexOf(recipient)} />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[14.5px] font-semibold">{recipient.name}</span>
+                  <span className={cx('block text-[12.5px]', daysLeft > 0 ? 'text-caution' : 'text-ink-muted')}>
+                    {daysLeft > 0 ? `เพิ่งเพิ่ม · ยังนับยอดอีก ${daysLeft} วัน` : `${recipient.note} · ${recipient.maskedAccount}`}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  aria-label={`เอา${recipient.name}ออกจาก ${copy.title}`}
+                  onClick={() => onChange({ ...draft, trustContacts: draft.trustContacts.filter((item) => item.recipientId !== member.recipientId) })}
+                  className="grid size-10 place-items-center rounded-full text-ink-faint hover:bg-surface hover:text-ink"
+                >
+                  <X size={18} />
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      ) : (
+        <p className="mt-3 rounded-2xl bg-canvas px-3.5 py-3 text-[13px] text-ink-muted">{copy.empty}</p>
+      )}
+      {suggestions.length > 0 && (
+        <div className="mt-3 grid grid-cols-1 gap-2">
+          <div className="flex items-center justify-between gap-2">
+            <p className="min-w-0 text-[12.5px] text-ink-faint">{copy.ai}</p>
+            <AiBadge />
+          </div>
+          {suggestions.map((suggestion) => {
+            const recipient = findRecipient(suggestion.recipientId)
+            return (
+              <AiSuggestionRow
+                key={suggestion.recipientId}
+                icon={<Avatar name={recipient.name} tone={DEMO_RECIPIENTS.indexOf(recipient)} />}
+                title={recipient.name}
+                reason={suggestion.reason}
+                note={`เฝ้าดู ${WATCH_PERIOD_DAYS} วันก่อนเริ่มไม่นับยอด`}
+                added={false}
+                addLabel={`เพิ่ม ${recipient.name} เข้า ${copy.title}`}
+                onAdd={() => add(suggestion.recipientId)}
+              />
+            )
+          })}
+        </div>
+      )}
+      {notInList.length > 0 && (
+        <div className="mt-3">
+          <p className="text-[12.5px] text-ink-faint">เพิ่ม{copy.noun} (เฝ้าดู {WATCH_PERIOD_DAYS} วันก่อนเริ่มไม่นับยอด)</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {notInList.map((recipient) => (
+              <button
+                key={recipient.id}
+                type="button"
+                onClick={() => add(recipient.id)}
+                className="flex min-h-10 items-center gap-1.5 rounded-full border border-dashed border-line-strong px-3.5 text-[13px] font-medium text-brand hover:bg-brand-tint"
+              >
+                <Plus size={15} aria-hidden="true" /> {recipient.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </Card>
   )
 }

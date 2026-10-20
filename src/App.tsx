@@ -17,6 +17,7 @@ import {
   type CompletedTransfer,
   type DemoScenario,
   type Evaluation,
+  type AiSuggestions,
   type ContactSuggestion,
   type ZoneSuggestion,
   type TrustGuardSettings,
@@ -74,7 +75,11 @@ export default function App() {
   /** Simulated place of the current transfer (set by a scenario); undefined uses the Settings location toggle. */
   const [placeId, setPlaceId] = useState<string | undefined>(undefined)
   /** AI suggestions captured when the last transfer finished, so they stay visible after the user accepts one. */
-  const [afterSuggestions, setAfterSuggestions] = useState<{ zone?: ZoneSuggestion; contact?: ContactSuggestion }>({})
+  const [aiSuggestions, setAiSuggestions] = useState<AiSuggestions | null>(null)
+  /** Set once the user opened the suggestions on the slip or closed the Home card: no Home card for them. */
+  const [aiHomeDone, setAiHomeDone] = useState(false)
+  /** Demo-clock time until which Home shows no AI card ("ไม่แสดงอีก 30 วัน"). */
+  const [aiSnoozedUntil, setAiSnoozedUntil] = useState(0)
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null)
   const [reviewAt, setReviewAt] = useState('')
   const [pause, setPause] = useState<Pause | null>(null)
@@ -145,7 +150,16 @@ export default function App() {
       setBalance((value) => value - amountBaht)
       if (kind === 'continued') setBaseline({ monthKey: evaluation.monthKey, baht: evaluation.limit.monthTotalBaht })
     }
-    setAfterSuggestions(kind === 'cancelled' ? {} : suggestionsAfterTransfer(settings, recipientId, placeId))
+    // A finished transfer can push the AI's data past its threshold (e.g. the 10th หมูปิ้ง purchase).
+    // A small button under the slip offers it; cancelled transfers never get suggestions.
+    setAiSuggestions(null)
+    if (kind !== 'cancelled') {
+      const found = suggestionsAfterTransfer(settings, recipientId, placeId)
+      if (found.zone || found.contact) {
+        setAiSuggestions({ ...found, recipientId, amountBaht })
+        setAiHomeDone(false)
+      }
+    }
     setOutcome(kind)
     setPause(null)
     go('outcome')
@@ -163,7 +177,9 @@ export default function App() {
     setRecipientId('niran')
     setAmountInput('')
     setPlaceId(undefined)
-    setAfterSuggestions({})
+    setAiSuggestions(null)
+    setAiHomeDone(false)
+    setAiSnoozedUntil(0)
     setEvaluation(null)
     setPause(null)
     setConfirmWeaken(false)
@@ -211,6 +227,12 @@ export default function App() {
     setDraftSettings(cloneSettings(next))
   }
 
+  /** x on the Home card; with "ไม่แสดงอีก 30 วัน" ticked, Home shows no AI card for 30 days. */
+  function dismissAi(snooze: boolean) {
+    setAiHomeDone(true)
+    if (snooze) setAiSnoozedUntil(Date.now() + 30 * 86_400_000)
+  }
+
   function back() {
     if (screen === 'review') { setEvaluation(null); setPause(null); go('transfer') }
     else go('home')
@@ -218,6 +240,13 @@ export default function App() {
 
   const weakening = weakeningChanges(settings, draftSettings)
   const settingsDirty = JSON.stringify(settings) !== JSON.stringify(draftSettings)
+  const aiShown = aiSuggestions && {
+    ...aiSuggestions,
+    zoneAdded: aiSuggestions.zone !== undefined && settings.zonePlaces.some((place) => place.id === aiSuggestions.zone?.id),
+    contactAdded: aiSuggestions.contact !== undefined && settings.trustContacts.some((member) => member.recipientId === aiSuggestions.contact?.recipientId),
+  }
+  // Home shows the card only for suggestions not opened on the slip, not closed, not snoozed and not all added.
+  const aiOnHome = aiShown && !aiHomeDone && nowMs >= aiSnoozedUntil && !(aiShown.zoneAdded && aiShown.contactAdded) ? aiShown : null
   const navActive = screen === 'home' ? 0 : screen === 'settings' || screen === 'setup' ? 2 : 1
   // Transfer, review and setup pin their actions to the bottom, just above the nav, so each step fits one screen.
   const inTransferFlow = screen === 'transfer' || screen === 'review' || screen === 'setup'
@@ -229,14 +258,14 @@ export default function App() {
       <div className="flex min-h-dvh items-center justify-center md:p-8">
         <div
           ref={phoneRef}
-          className="relative flex h-dvh w-full max-w-[430px] flex-col overflow-hidden bg-canvas md:h-[min(880px,calc(100dvh-4rem))] md:rounded-[40px] md:border md:border-line md:shadow-[0_30px_80px_rgb(16_56_51_/_0.18)]"
+          className="relative flex h-dvh w-full max-w-[430px] flex-col overflow-hidden bg-canvas md:h-[min(880px,calc(100dvh-4rem))] md:rounded-[40px] md:border md:border-line md:shadow-[0_30px_80px_rgb(16_56_51_/_0.036)]"
         >
           <div className="flex h-12 shrink-0 items-center justify-between bg-brand px-5 text-white">
             <span className="flex items-center gap-2 text-[16px] font-bold tracking-tight">
               <span className="grid size-7 place-items-center rounded-lg bg-white/15"><ShieldCheck size={17} aria-hidden="true" /></span>
               TrustGuard
             </span>
-            <span className="rounded-full border border-white/40 px-2.5 py-0.5 text-[11px]">Prototype 3.0</span>
+            <span className="rounded-full border border-white/40 px-2.5 py-0.5 text-[11px]">Prototype 4.0</span>
           </div>
 
           <header className="grid h-[68px] shrink-0 grid-cols-[44px_1fr_44px] items-center bg-canvas px-4 text-center">
@@ -283,6 +312,10 @@ export default function App() {
                   onSettings={openSettings}
                   onboarded={onboarded}
                   onStartSetup={() => go('setup')}
+                  ai={aiOnHome}
+                  onAcceptZone={acceptZone}
+                  onAcceptContact={acceptContact}
+                  onDismissAi={dismissAi}
                 />
               )}
               {screen === 'transfer' && (
@@ -311,11 +344,11 @@ export default function App() {
                   kind={outcome}
                   recipient={recipient}
                   amountBaht={amountBaht}
-                  suggestions={afterSuggestions}
-                  zoneAdded={afterSuggestions.zone !== undefined && settings.zonePlaces.some((place) => place.id === afterSuggestions.zone?.id)}
-                  contactAdded={afterSuggestions.contact !== undefined && settings.trustContacts.some((member) => member.recipientId === afterSuggestions.contact?.recipientId)}
+                  ai={aiShown}
+                  sheetContainer={phoneRef}
                   onAcceptZone={acceptZone}
                   onAcceptContact={acceptContact}
+                  onOpenAi={() => setAiHomeDone(true)}
                   onAgain={() => startTransfer(recipientId, amountInput, placeId)}
                   onHome={() => go('home')}
                 />
@@ -331,10 +364,10 @@ export default function App() {
                 <Button disabled={!settingsDirty} onClick={saveSettings}>บันทึกการตั้งค่า</Button>
               </div>
             )}
-            <nav aria-label="เมนูหลัก" className="pointer-events-auto relative grid grid-cols-3 rounded-full bg-surface p-1.5 shadow-[0_12px_32px_rgb(16_56_51_/_0.16)]">
+            <nav aria-label="เมนูหลัก" className="pointer-events-auto relative grid grid-cols-3 rounded-full bg-surface p-1.5 shadow-[0_12px_32px_rgb(16_56_51_/_0.032)]">
               <span
                 aria-hidden="true"
-                className="absolute inset-y-1.5 left-1.5 w-[calc((100%-0.75rem)/3)] rounded-full bg-brand shadow-[0_8px_18px_rgb(11_93_88_/_0.28)] transition-transform duration-[420ms] ease-(--ease-sheet)"
+                className="absolute inset-y-1.5 left-1.5 w-[calc((100%-0.75rem)/3)] rounded-full bg-brand shadow-[0_8px_18px_rgb(11_93_88_/_0.056)] transition-transform duration-[420ms] ease-(--ease-sheet)"
                 style={{ transform: `translateX(${navActive * 100}%)` }}
               />
               {([

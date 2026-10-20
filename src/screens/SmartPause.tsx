@@ -26,7 +26,7 @@ export function ThreeTChecklist({ evaluation, recipient }: { evaluation: Evaluat
     return () => document.removeEventListener('pointerdown', close)
   }, [openName])
   return (
-    <section aria-labelledby="three-t-title" className="rounded-[26px] bg-fail p-1.5 shadow-[0_14px_30px_rgb(179_19_31_/_0.24)]">
+    <section aria-labelledby="three-t-title" className="rounded-[26px] bg-fail p-1.5 shadow-[0_14px_30px_rgb(179_19_31_/_0.048)]">
       <div className="flex items-center gap-2 px-3 pb-2 pt-1.5 text-white">
         <ShieldAlert size={17} aria-hidden="true" />
         <h3 id="three-t-title" className="flex-1 text-[14px] font-semibold">ผลการเช็ก 3T</h3>
@@ -67,7 +67,8 @@ export function SmartPauseSheet({ open, onOpenChange, container, evaluation, rec
         </span>
         เงินยังไม่ถูกโอน
       </>}
-      description={`ไม่ผ่าน ${evaluation.failedCount} จาก 3 ข้อ ลองทบทวนก่อนตัดสินใจ`}
+      // Name the consequence, not only the risk: effective warnings say what happens if the user goes on.
+      description={`ไม่ผ่าน ${evaluation.failedCount} จาก 3 ข้อ · ถ้าโอนแล้วอาจไม่ได้คืน`}
     >
       <div className="rounded-[22px] bg-surface px-4 py-3 text-center shadow-card short:py-2.5">
         <div className="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1">

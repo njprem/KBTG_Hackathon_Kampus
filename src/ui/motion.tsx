@@ -29,7 +29,7 @@ export function TapRipples({ target }: { target: RefObject<HTMLElement | null> }
       {ripples.map((ripple) => (
         <span
           key={ripple.id}
-          className="absolute size-[72px] animate-tap-ripple rounded-full bg-brand-accent/20 shadow-[0_0_0_7px_rgb(8_127_114_/_0.10)]"
+          className="absolute size-[72px] animate-tap-ripple rounded-full bg-brand-accent/20 shadow-[0_0_0_7px_rgb(8_127_114_/_0.02)]"
           style={{ left: ripple.x, top: ripple.y }}
         />
       ))}
@@ -106,7 +106,7 @@ export function ProcessingOverlay({ active, title, detail }: { active: boolean; 
       <div role="status" aria-live="polite" className={cx('flex flex-col items-center text-center transition-transform duration-300 ease-(--ease-sheet)', active ? 'scale-100' : 'scale-95')}>
         {active && (
           <>
-            <span className="relative grid size-[76px] place-items-center rounded-full bg-surface shadow-[0_14px_34px_rgb(11_93_88_/_0.18)]">
+            <span className="relative grid size-[76px] place-items-center rounded-full bg-surface shadow-[0_14px_34px_rgb(11_93_88_/_0.036)]">
               <svg viewBox="0 0 48 48" className="size-14 animate-spin-arc" aria-hidden="true">
                 <circle cx="24" cy="24" r="19" fill="none" strokeWidth="4" className="stroke-brand-soft" />
                 <circle cx="24" cy="24" r="19" fill="none" strokeWidth="4" strokeLinecap="round" strokeDasharray="40 120" className="stroke-brand-accent" />
@@ -125,7 +125,7 @@ export function ProcessingOverlay({ active, title, detail }: { active: boolean; 
 export function EdgeBadge({ children, tone = 'brand', className }: { children: ReactNode; tone?: 'brand' | 'pass'; className?: string }) {
   return (
     <span aria-hidden="true" className={cx('pointer-events-none absolute left-1/2 top-0 z-10 -translate-x-1/2 -translate-y-1/2', className)}>
-      <span className="grid size-[68px] animate-badge-pop place-items-center rounded-full bg-surface shadow-[0_10px_26px_rgb(11_93_88_/_0.20)]">
+      <span className="grid size-[68px] animate-badge-pop place-items-center rounded-full bg-surface shadow-[0_10px_26px_rgb(11_93_88_/_0.04)]">
         <span className="relative grid size-[50px] place-items-center">
           <span className={cx('absolute inset-0 animate-badge-pulse rounded-full', tone === 'pass' ? 'bg-pass' : 'bg-brand-accent')} />
           <span className={cx('relative grid size-full place-items-center rounded-full text-white', tone === 'pass' ? 'bg-pass' : 'bg-brand-accent')}>{children}</span>

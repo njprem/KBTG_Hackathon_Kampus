@@ -60,7 +60,7 @@ export function CheckRow({ name, state, statusLine, meaning, open, onOpenChange 
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, scale: 0.98 }}
             transition={{ duration: 0.18, ease: [0.32, 0.72, 0, 1] }}
-            className="absolute inset-x-2 top-[calc(100%-0.25rem)] origin-top rounded-2xl bg-surface px-3.5 py-3 shadow-[0_14px_34px_rgb(16_56_51_/_0.22)] ring-1 ring-line"
+            className="absolute inset-x-2 top-[calc(100%-0.25rem)] origin-top rounded-2xl bg-surface px-3.5 py-3 shadow-[0_14px_34px_rgb(16_56_51_/_0.044)] ring-1 ring-line"
           >
             <p className={cx('text-[13.5px] font-semibold leading-snug', state === 'fail' ? 'text-fail' : 'text-ink')}>{statusLine}</p>
             <p className="mt-1.5 text-[13px] leading-relaxed text-ink-muted">{meaning}</p>

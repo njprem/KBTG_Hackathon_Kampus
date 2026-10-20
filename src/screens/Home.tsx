@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { ArrowRight, ArrowUpRight, ChevronRight, Eye, EyeOff, HeartHandshake, MapPin, PackageOpen, Plus, Repeat2, Send, ShieldCheck, Store, Users, WalletCards } from 'lucide-react'
-import { DEMO_RECIPIENTS, DEMO_SCENARIOS, DEMO_SENDER, evaluateTransfer, findRecipient, type Evaluation, type LimitBaseline, type CompletedTransfer, type DemoScenario, type TrustGuardSettings } from '../domain/trustguard'
+import { DEMO_RECIPIENTS, DEMO_SCENARIOS, DEMO_SENDER, evaluateTransfer, findRecipient, type Evaluation, type LimitBaseline, type CompletedTransfer, type DemoScenario, type TrustGuardSettings, type AiSuggestions, type ContactSuggestion, type ZoneSuggestion } from '../domain/trustguard'
 import { ZONE_LABEL } from '../ui/copy'
 import { formatBaht, formatBahtShort } from '../ui/format'
 import { Avatar, Button, cx } from '../ui/primitives'
-import { AiBadge } from '../ui/ZonePlaces'
+import { AiBadge, AiSuggestionsCard } from '../ui/ZonePlaces'
 import { ProgressRing } from '../ui/motion'
 
 type Preview = Evaluation['decision'] | 'balance'
@@ -23,11 +23,16 @@ const THREE_T = [
   { icon: WalletCards, name: 'Trust Limit', detail: 'วงเงินต่อเดือน' },
 ] as const
 
-export function HomeScreen({ balance, settings, countedThisMonth, ledger, baseline, now, onboarded, onTransfer, onScenario, onSettings, onStartSetup }: {
+export function HomeScreen({ balance, settings, countedThisMonth, ledger, baseline, now, onboarded, onTransfer, onScenario, onSettings, onStartSetup, ai, onAcceptZone, onAcceptContact, onDismissAi }: {
   balance: number
   /** False for the demo user who has not turned TrustGuard on yet. */
   onboarded: boolean
   onStartSetup: () => void
+  /** AI suggestions the user did not open on the slip, or null. */
+  ai: (AiSuggestions & { zoneAdded: boolean; contactAdded: boolean }) | null
+  onAcceptZone: (suggestion: ZoneSuggestion) => void
+  onAcceptContact: (suggestion: ContactSuggestion) => void
+  onDismissAi: (snooze: boolean) => void
   baseline: LimitBaseline | null
   now: string
   settings: TrustGuardSettings
@@ -61,7 +66,7 @@ export function HomeScreen({ balance, settings, countedThisMonth, ledger, baseli
       {!onboarded && (
         <section aria-labelledby="invite-title" className="rounded-[28px] bg-surface p-4 shadow-card ring-2 ring-brand-soft">
           <div className="flex items-center gap-3">
-            <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-brand text-white shadow-[0_10px_22px_rgb(11_93_88_/_0.24)]"><ShieldCheck size={22} aria-hidden="true" /></span>
+            <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-brand text-white shadow-[0_10px_22px_rgb(11_93_88_/_0.048)]"><ShieldCheck size={22} aria-hidden="true" /></span>
             <span className="min-w-0 flex-1">
               <h2 id="invite-title" className="text-[18px] font-bold leading-tight tracking-tight">เปิดใช้ TrustGuard ไหม?</h2>
               <span className="mt-0.5 block text-[12.5px] leading-snug text-ink-muted">เช็ก 3T ให้ทุกครั้งก่อนเงินออก</span>
@@ -84,7 +89,7 @@ export function HomeScreen({ balance, settings, countedThisMonth, ledger, baseli
         </section>
       )}
 
-      <section className="relative overflow-hidden rounded-[28px] bg-[linear-gradient(135deg,#0b5d58_0%,#087f72_60%,#14957f_100%)] p-5 text-white shadow-[0_18px_30px_rgb(11_93_88_/_0.28)]">
+      <section className="relative overflow-hidden rounded-[28px] bg-[linear-gradient(135deg,#0b5d58_0%,#087f72_60%,#14957f_100%)] p-5 text-white shadow-[0_18px_30px_rgb(11_93_88_/_0.056)]">
         <div aria-hidden="true" className="pointer-events-none absolute -right-16 -top-20 size-56 rounded-full border border-white/15 shadow-[0_0_0_34px_rgb(255_255_255_/_0.05),0_0_0_70px_rgb(255_255_255_/_0.035)]" />
         <div className="relative flex items-center justify-between">
           <span className="flex items-center gap-2 text-[13px] font-semibold"><WalletCards size={16} aria-hidden="true" /> บัญชีใช้จ่าย</span>
@@ -142,7 +147,7 @@ export function HomeScreen({ balance, settings, countedThisMonth, ledger, baseli
         </div>
         <div className="grid grid-cols-5 gap-1">
           <button type="button" onClick={() => onTransfer()} className="flex flex-col items-center gap-1.5 rounded-2xl py-1 text-[12px] font-medium text-brand">
-            <span className="grid size-12 place-items-center rounded-full bg-brand text-white shadow-[0_8px_16px_rgb(11_93_88_/_0.25)]"><Plus size={22} aria-hidden="true" /></span>
+            <span className="grid size-12 place-items-center rounded-full bg-brand text-white shadow-[0_8px_16px_rgb(11_93_88_/_0.05)]"><Plus size={22} aria-hidden="true" /></span>
             โอนใหม่
           </button>
           {DEMO_RECIPIENTS.map((recipient, index) => {
@@ -163,6 +168,8 @@ export function HomeScreen({ balance, settings, countedThisMonth, ledger, baseli
           })}
         </div>
       </section>
+
+      {onboarded && ai && <AiSuggestionsCard ai={ai} onAcceptZone={onAcceptZone} onAcceptContact={onAcceptContact} onDismiss={onDismissAi} />}
 
       {onboarded && (
         <button type="button" onClick={onSettings} className="rounded-[24px] bg-surface p-4 text-left shadow-card transition-transform active:scale-[0.99]">

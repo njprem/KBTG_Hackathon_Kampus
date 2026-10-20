@@ -10,7 +10,7 @@ export function cx(...classes: Array<string | false | null | undefined>) {
 type ButtonVariant = 'primary' | 'secondary' | 'quiet'
 
 const buttonStyles: Record<ButtonVariant, string> = {
-  primary: 'bg-brand text-white shadow-[0_10px_22px_rgb(11_93_88_/_0.24)] hover:bg-brand-strong',
+  primary: 'bg-brand text-white shadow-[0_10px_22px_rgb(11_93_88_/_0.048)] hover:bg-brand-strong',
   secondary: 'border border-line-strong bg-surface text-brand hover:bg-brand-tint',
   quiet: 'text-ink-muted hover:bg-brand-tint',
 }

@@ -1,7 +1,10 @@
-import type { ReactNode } from 'react'
-import { Building2, Check, House, Plus, Sparkles, Store, X } from 'lucide-react'
-import type { TrustZonePlace, ZoneSuggestion } from '../domain/trustguard'
-import { cx } from './primitives'
+import { useState, type ReactNode, type RefObject } from 'react'
+import { m } from 'motion/react'
+import { Building2, Check, ChevronRight, House, Plus, Sparkles, Store, X } from 'lucide-react'
+import { WATCH_PERIOD_DAYS, findRecipient, toZonePlace, type AiSuggestions, type ContactSuggestion, type TrustZonePlace, type ZoneSuggestion } from '../domain/trustguard'
+import { formatBaht } from './format'
+import { Avatar, Button, cx } from './primitives'
+import { BottomSheet } from './BottomSheet'
 
 const PLACE_ICON: Record<string, typeof House> = { home: House, office: Building2, seven: Store }
 
@@ -114,5 +117,131 @@ export function AiSuggestionRow({ icon, title, reason, note, added, addLabel, on
         {added ? <><Check size={15} aria-hidden="true" /> เพิ่มแล้ว</> : <><Plus size={15} aria-hidden="true" /> เพิ่ม</>}
       </button>
     </div>
+  )
+}
+
+/** Shops are trusted as a "Trust List" entry; people stay "Trust Contact". Both use the same list underneath. */
+export function trustListName(recipientId: string) {
+  return findRecipient(recipientId).kind === 'merchant' ? 'Trust List' : 'Trust Contact'
+}
+
+/**
+ * Small button under the slip, shown when a finished transfer pushes the AI's data past its threshold.
+ * Tapping it opens the full suggestions in a bottom sheet, so the slip itself stays clean.
+ */
+export function AiSuggestionsButton({ ai, container, onAcceptZone, onAcceptContact, onOpen }: {
+  ai: AiShown
+  container: RefObject<HTMLElement | null>
+  onAcceptZone: (suggestion: ZoneSuggestion) => void
+  onAcceptContact: (suggestion: ContactSuggestion) => void
+  /** Called when the user opens the suggestions here, so Home does not show them again. */
+  onOpen: () => void
+}) {
+  const [open, setOpen] = useState(false)
+  const lists = [ai.zone && 'Trust Zone', ai.contact && trustListName(ai.contact.recipientId)].filter(Boolean).join(' และ ')
+  return (
+    <>
+      <m.button
+        type="button"
+        onClick={() => { setOpen(true); onOpen() }}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5, duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
+        // White pill with a purple ring and glow so it stands out on the grey page, still quieter than the main button.
+        className="mx-auto mt-3 flex min-h-12 max-w-full items-center gap-2.5 rounded-full bg-surface py-1.5 pl-1.5 pr-3.5 text-[13.5px] font-semibold text-[#4a2c96] shadow-[0_8px_22px_rgb(91_63_168_/_0.044)] ring-2 ring-[#8b6ee0] transition-transform active:scale-[0.98]"
+      >
+        <span className="grid size-8 shrink-0 place-items-center rounded-full bg-[#6d4fd0] text-white"><Sparkles size={16} aria-hidden="true" /></span>
+        <span className="truncate">ร้านประจำ? เพิ่มเข้า {lists}</span>
+        <ChevronRight size={17} className="shrink-0" aria-hidden="true" />
+      </m.button>
+      <BottomSheet
+        open={open}
+        onOpenChange={setOpen}
+        container={container}
+        closeLabel="ปิดคำแนะนำ"
+        title="AI พบว่าคุณโอนแบบนี้บ่อย"
+        description={<span className="flex flex-wrap items-center gap-x-2 gap-y-1"><AiBadge /><span>จากการโอนล่าสุด: {findRecipient(ai.recipientId).name} {formatBaht(ai.amountBaht)}</span></span>}
+      >
+        <div className="grid grid-cols-1 gap-2">
+          <AiSuggestionRows ai={ai} onAcceptZone={onAcceptZone} onAcceptContact={onAcceptContact} />
+          <Button className="mt-2" onClick={() => setOpen(false)}>เสร็จแล้ว</Button>
+        </div>
+      </BottomSheet>
+    </>
+  )
+}
+
+type AiShown = AiSuggestions & { zoneAdded: boolean; contactAdded: boolean }
+
+/** The add-to-Trust Zone and add-to-Trust Contact/List rows, shared by the slip sheet and the Home card. */
+function AiSuggestionRows({ ai, onAcceptZone, onAcceptContact }: {
+  ai: AiShown
+  onAcceptZone: (suggestion: ZoneSuggestion) => void
+  onAcceptContact: (suggestion: ContactSuggestion) => void
+}) {
+  const contactName = ai.contact ? findRecipient(ai.contact.recipientId).name : ''
+  return (
+    <>
+      {ai.zone && (
+        <AiSuggestionRow
+          icon={<PlaceIcon place={toZonePlace(ai.zone)} />}
+          title={`เพิ่ม ${ai.zone.label} เข้า Trust\u00a0Zone`}
+          reason={ai.zone.reason}
+          added={ai.zoneAdded}
+          addLabel={`เพิ่ม ${ai.zone.label} เข้า Trust Zone`}
+          onAdd={() => ai.zone && onAcceptZone(ai.zone)}
+        />
+      )}
+      {ai.contact && (
+        <AiSuggestionRow
+          icon={<Avatar name={contactName} tone={1} />}
+          // Non-breaking space keeps "Trust List" on one line.
+          title={`เพิ่ม ${contactName} เข้า ${trustListName(ai.contact.recipientId).replace(' ', '\u00a0')}`}
+          reason={ai.contact.reason}
+          note={`ไม่ถูกพักและไม่นับยอด · เพิ่มทีหลังจะเฝ้าดู ${WATCH_PERIOD_DAYS} วันก่อน`}
+          added={ai.contactAdded}
+          addLabel={`เพิ่ม ${contactName} เข้า ${trustListName(ai.contact.recipientId)}`}
+          onAdd={() => ai.contact && onAcceptContact(ai.contact)}
+        />
+      )}
+    </>
+  )
+}
+
+/**
+ * Home card for suggestions the user did not open on the slip.
+ * x closes it; ticking "ไม่แสดงอีก 30 วัน" first keeps AI suggestions off Home for 30 days.
+ */
+export function AiSuggestionsCard({ ai, onAcceptZone, onAcceptContact, onDismiss }: {
+  ai: AiShown
+  onAcceptZone: (suggestion: ZoneSuggestion) => void
+  onAcceptContact: (suggestion: ContactSuggestion) => void
+  onDismiss: (snooze: boolean) => void
+}) {
+  const [snooze, setSnooze] = useState(false)
+  return (
+    <m.section
+      aria-labelledby="ai-home-title"
+      initial={{ opacity: 0, y: 18, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ delay: 0.25, duration: 0.45, ease: [0.32, 0.72, 0, 1] }}
+      className="grid grid-cols-1 gap-2 rounded-[24px] bg-surface p-4 shadow-card ring-1 ring-[#e6ddf8]"
+    >
+      <div className="flex items-start gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[#efe9fb] text-[#5b3fa8]"><Sparkles size={19} aria-hidden="true" /></span>
+        <span className="min-w-0 flex-1">
+          <h2 id="ai-home-title" className="text-[15px] font-semibold">AI พบว่าคุณโอนแบบนี้บ่อย</h2>
+          <span className="block truncate text-[12.5px] text-ink-muted">จากการโอนล่าสุด: {findRecipient(ai.recipientId).name} {formatBaht(ai.amountBaht)}</span>
+        </span>
+        <button type="button" aria-label="ปิดคำแนะนำ" onClick={() => onDismiss(snooze)} className="-mr-1.5 -mt-1 grid size-10 shrink-0 place-items-center rounded-full text-ink-faint hover:bg-canvas hover:text-ink">
+          <X size={18} />
+        </button>
+      </div>
+      <AiSuggestionRows ai={ai} onAcceptZone={onAcceptZone} onAcceptContact={onAcceptContact} />
+      <label className="mt-1 flex min-h-10 cursor-pointer items-center gap-2.5 px-1 text-[13px] text-ink-muted">
+        <input type="checkbox" checked={snooze} onChange={(event) => setSnooze(event.target.checked)} className="size-[18px] accent-brand-accent" />
+        ไม่แสดงอีก 30 วัน
+      </label>
+    </m.section>
   )
 }

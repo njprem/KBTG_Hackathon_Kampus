@@ -35,8 +35,10 @@
   --color-unknown: #5d6b68;
   --color-unknown-soft: #eef2f1;
 
-  --shadow-card: 0 1px 2px rgb(23 49 47 / 0.04), 0 4px 14px rgb(23 49 47 / 0.05);
-  --shadow-float: 0 -10px 40px rgb(8 40 37 / 0.18);
+  --shadow-card: 0 1px 2px rgb(23 49 47 / 0.008), 0 4px 14px rgb(23 49 47 / 0.01);
+  /* All shadows are 20% of their original strength (owner decision, 21 October 2026). */
+  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.02), 0 1px 2px -1px rgb(0 0 0 / 0.02);
+  --shadow-float: 0 -10px 40px rgb(8 40 37 / 0.036);
 
   --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
   --ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1);

@@ -314,6 +314,14 @@ export function pendingContactSuggestions(settings: TrustGuardSettings): Contact
  * and the recipient, if the user often pays them and they are not a Trust Contact. Offered only once the transfer
  * is finished, never during a pause, so it cannot be used to talk someone past a warning.
  */
+/** AI suggestions waiting on Home, with the transfer that triggered them. */
+export interface AiSuggestions {
+  zone?: ZoneSuggestion
+  contact?: ContactSuggestion
+  recipientId: string
+  amountBaht: number
+}
+
 export function suggestionsAfterTransfer(settings: TrustGuardSettings, recipientId: string, placeId?: string): { zone?: ZoneSuggestion; contact?: ContactSuggestion } {
   const zone = placeId ? pendingZoneSuggestions(settings.zonePlaces).find((item) => item.id === placeId && item.source === 'frequent') : undefined
   const contact = pendingContactSuggestions(settings).find((item) => item.recipientId === recipientId)
