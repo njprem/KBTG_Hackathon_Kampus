@@ -83,11 +83,15 @@ export interface ZoneCheck {
   status: TrustZoneStatus
   /** Name of the simulated place, when the transfer came with one. */
   placeLabel?: string
+  /** The AI already knows this as a frequent place the user has not confirmed: not counted either way. */
+  learned?: boolean
 }
 
 export interface ContactCheck {
   state: CheckState
   inList: boolean
+  /** The AI already knows this as an account the user pays often but has not confirmed: not counted either way. */
+  learned?: boolean
   /** Whole days left in the watch period, 0 when the recipient is not being watched. */
   watchDaysLeft: number
 }
@@ -201,13 +205,23 @@ export function evaluateTransfer(input: {
   const zoneStatus: TrustZoneStatus = draft.placeId
     ? settings.zonePlaces.some((item) => item.id === draft.placeId) ? 'inside' : 'outside'
     : settings.zone
+  // Owner decision (20 October 2026): a frequent place or account the AI already recognises, but the user has not
+  // confirmed yet, is not counted either way, so everyday purchases there are not paused while the AI suggests it.
+  const zoneLearned = zoneStatus === 'outside' && ZONE_SUGGESTIONS.some((item) => item.id === draft.placeId && item.source === 'frequent')
   const zone: ZoneCheck = {
     status: zoneStatus,
     // Being inside never clears another check; unavailable location is not itself suspicious.
-    state: zoneStatus === 'outside' ? 'fail' : zoneStatus === 'inside' ? 'pass' : 'unknown',
+    state: zoneLearned ? 'unknown' : zoneStatus === 'outside' ? 'fail' : zoneStatus === 'inside' ? 'pass' : 'unknown',
     ...(place && { placeLabel: place.label }),
+    ...(zoneLearned && { learned: true }),
   }
-  const contact: ContactCheck = { state: trusted ? 'pass' : 'fail', inList: member !== undefined, watchDaysLeft: daysLeft }
+  const contactLearned = member === undefined && CONTACT_SUGGESTIONS.some((item) => item.recipientId === draft.recipient.id)
+  const contact: ContactCheck = {
+    state: trusted ? 'pass' : contactLearned ? 'unknown' : 'fail',
+    inList: member !== undefined,
+    watchDaysLeft: daysLeft,
+    ...(contactLearned && { learned: true }),
+  }
 
   const counted = !trusted
   const monthTotalBaht = countedMonthTotal(ledger, now) + (counted ? draft.amountBaht : 0)
@@ -351,7 +365,7 @@ export interface DemoScenario {
 export const DEMO_SCENARIOS: readonly DemoScenario[] = [
   { id: 'scam-deposit', title: 'ค่าจองสินค้า', detail: 'โอนให้นิรันดร์', recipientId: 'niran', amountBaht: 18_000 },
   { id: 'split-transfers', title: 'โอนแบ่งจ่าย', detail: 'โอนให้นิรันดร์ ทำซ้ำ 3 ครั้ง', recipientId: 'niran', amountBaht: 6_000 },
-  // A tiny everyday purchase at a place not yet in Trust Zone: paused at first, then the AI suggests trusting it.
-  { id: 'pork', title: 'หมูปิ้งหน้าเซเว่น', detail: 'จ่ายร้านหมูปิ้งป้าแดง', recipientId: 'pork-stall', amountBaht: 45, placeId: 'seven' },
+  // An everyday purchase at a place and shop the AI already knows: it passes, then the AI suggests trusting them.
+  { id: 'pork', title: 'หมูปิ้งหน้าเซเว่น', detail: 'จ่ายร้านหมูปิ้งป้าแดง', recipientId: 'pork-stall', amountBaht: 25, placeId: 'seven' },
   { id: 'mom', title: 'โอนให้แม่', detail: 'Trust Contact ของคุณ', recipientId: 'mom', amountBaht: 5_000 },
 ]

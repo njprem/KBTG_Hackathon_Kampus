@@ -28,7 +28,7 @@ A tap opens the transfer form already filled in; a badge on each card previews w
 | --- | --- |
 | ค่าจองสินค้า ฿18,000 to a new recipient | Paused: Trust Contact and Trust Limit fail |
 | โอนแบ่งจ่าย ฿6,000, repeated | First two show a one-line notice; the third is paused once the month total reaches ฿15,000 |
-| หมูปิ้งหน้าเซเว่น ฿45 at a place not yet in Trust Zone | Paused at first; afterwards the simulated AI suggests adding the place to Trust Zone and the shop as a Trust Contact, and the next purchase only shows a note |
+| หมูปิ้งหน้าเซเว่น ฿25 at a place and shop the AI already knows | Passes (they are not counted until confirmed); afterwards the simulated AI suggests adding the place to Trust Zone and the shop as a Trust Contact |
 | โอนให้แม่ ฿5,000 (Trust Contact) | Passes and is not counted |
 
 The rules:

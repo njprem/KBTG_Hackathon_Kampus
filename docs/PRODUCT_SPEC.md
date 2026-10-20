@@ -57,7 +57,7 @@ All removed for the mentor's comment that the feature set was too large:
 - Is 2 of 3 the right pause rule, and is 30 seconds long enough to help?
 - How should Trust Zone be learned and explained in a real app, and what is the fallback when location is off?
 - Is 7 days the right watch period for a new Trust Contact, and who may remove one?
-- Should registered merchants be treated differently? The ฿45 หมูปิ้ง purchase pauses the first time; the simulated AI then suggests trusting the place or the shop, which is offered only after the transfer, never during a pause.
+- Should registered merchants be treated differently? The ฿25 หมูปิ้ง purchase passes because the AI already knows the place and shop (not counted until the user confirms); afterwards the simulated AI suggests trusting the place or the shop, which is offered only after the transfer, never during a pause.
 
 ## Pitch and prototype boundary
 

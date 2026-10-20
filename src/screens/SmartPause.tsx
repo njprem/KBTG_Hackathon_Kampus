@@ -32,7 +32,7 @@ export function ThreeTChecklist({ evaluation, recipient }: { evaluation: Evaluat
         <h3 id="three-t-title" className="flex-1 text-[14px] font-semibold">ผลการเช็ก 3T</h3>
       </div>
       <div className="rounded-[20px] bg-surface">
-        <CheckRow name="Trust Zone" {...row('Trust Zone')} state={evaluation.zone.state} statusLine={zoneStatusLine(evaluation.zone.status)} meaning={MEANING.zone} />
+        <CheckRow name="Trust Zone" {...row('Trust Zone')} state={evaluation.zone.state} statusLine={zoneStatusLine(evaluation.zone.status, evaluation.zone.learned)} meaning={MEANING.zone} />
         <CheckRow name="Trust Contact" {...row('Trust Contact')} state={evaluation.contact.state} statusLine={contactStatusLine(evaluation, recipient)} meaning={MEANING.contact} />
         <CheckRow name="Trust Limit" {...row('Trust Limit')} state={evaluation.limit.state} statusLine={limitStatusLine(evaluation)} meaning={MEANING.limit} />
       </div>

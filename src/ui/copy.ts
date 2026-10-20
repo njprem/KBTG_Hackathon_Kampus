@@ -14,7 +14,8 @@ export const ZONE_LABEL: Record<TrustZoneStatus, string> = {
   unavailable: 'ตรวจสอบตำแหน่งไม่ได้',
 }
 
-export function zoneStatusLine(status: TrustZoneStatus) {
+export function zoneStatusLine(status: TrustZoneStatus, learned = false) {
+  if (learned) return 'AI พบว่าคุณโอนที่นี่บ่อย ยังไม่ได้เพิ่มเข้า Trust Zone จึงไม่นับข้อนี้'
   if (status === 'inside') return 'คุณอยู่ในพื้นที่ที่โอนเงินเป็นประจำ'
   if (status === 'outside') return 'คุณอยู่นอกพื้นที่ที่โอนเงินเป็นประจำ'
   return 'ตรวจสอบตำแหน่งไม่ได้ จึงไม่นับข้อนี้'
@@ -23,6 +24,7 @@ export function zoneStatusLine(status: TrustZoneStatus) {
 export function contactStatusLine(evaluation: Evaluation, recipient: Recipient) {
   const { contact } = evaluation
   if (contact.state === 'pass') return `${recipient.name} เป็น Trust Contact ของคุณ`
+  if (contact.learned) return `AI พบว่าคุณโอนให้${recipient.name}บ่อย จึงไม่นับข้อนี้`
   if (contact.inList) return `${recipient.name} เพิ่งถูกเพิ่ม ยังเฝ้าดูอีก ${contact.watchDaysLeft} วัน`
   return `${recipient.name} ไม่ใช่ Trust Contact ของคุณ`
 }

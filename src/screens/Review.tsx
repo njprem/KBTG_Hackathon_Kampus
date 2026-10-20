@@ -35,7 +35,7 @@ export function ReviewScreen({ evaluation, recipient, amountBaht, paused, onConf
           <DataRow label="จาก" value={`บัญชีใช้จ่าย ${DEMO_SENDER.maskedAccount}`} />
           <DataRow label="ถึง" value={recipient.name} />
           <DataRow label="บัญชีผู้รับ" value={recipient.maskedAccount} />
-          <DataRow label="ตำแหน่ง" value={<span className="inline-flex items-center gap-1"><MapPin size={14} className="shrink-0" aria-hidden="true" />{evaluation.zone.placeLabel ? `${evaluation.zone.placeLabel} · ` : ''}{ZONE_LABEL[evaluation.zone.status]} <span className="text-ink-faint">(จำลอง)</span></span>} />
+          <DataRow label="ตำแหน่ง" value={<span className="inline-flex items-center gap-1"><MapPin size={14} className="shrink-0" aria-hidden="true" />{evaluation.zone.placeLabel ? `${evaluation.zone.placeLabel} · ` : ''}{evaluation.zone.learned ? 'AI พบว่าโอนที่นี่บ่อย' : ZONE_LABEL[evaluation.zone.status]} <span className="text-ink-faint">(จำลอง)</span></span>} />
         </div>
       </Card>
 

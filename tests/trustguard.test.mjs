@@ -89,7 +89,7 @@ test('after continuing past a pause, small transfers that month do not pause aga
   const small = evaluateTransfer({ draft: draft('niran', 20), ledger, settings: settings(), baseline })
   assert.equal(small.limit.state, 'pass')
   assert.equal(small.decision, 'notice')
-  const big = evaluateTransfer({ draft: draft('pork-stall', 15_000), ledger, settings: settings(), baseline })
+  const big = evaluateTransfer({ draft: draft('niran', 15_000), ledger, settings: settings(), baseline })
   assert.equal(big.limit.state, 'fail')
   assert.equal(big.decision, 'pause')
 })
@@ -125,4 +125,12 @@ test('a Trust Contact chosen during first setup is trusted immediately', () => {
   assert.equal(watchDaysLeft(member, now), 0)
   const later = { recipientId: 'min', addedAt: now }
   assert.equal(watchDaysLeft(later, now), WATCH_PERIOD_DAYS)
+})
+
+test('a frequent place and shop the AI already knows are not counted, so a ฿25 purchase passes', () => {
+  const now = '2026-10-20T12:00:00+07:00'
+  const result = evaluateTransfer({ draft: { recipient: findRecipient('pork-stall'), amountBaht: 25, createdAt: now, placeId: 'seven' }, ledger: [], settings: DEMO_SETTINGS, baseline: null })
+  assert.equal(result.zone.state, 'unknown')
+  assert.equal(result.contact.state, 'unknown')
+  assert.equal(result.decision, 'complete')
 })
