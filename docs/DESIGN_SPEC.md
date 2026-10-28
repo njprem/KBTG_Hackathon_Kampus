@@ -63,6 +63,7 @@ Motion follows a reference banking app the team chose; durations stay short and 
 - The new user's Home shows a "เปิดใช้ TrustGuard ไหม?" card; transfers are not checked until setup ends.
 - Setup has four steps: Trust Zone, Trust Contact, Trust Limit, summary.
 - Trust Zone shows simulated AI suggestions: the sign-up address turned into an area, and places the user often transfers from. The user adds each one explicitly.
+- Tapping Add for a Trust Zone suggestion opens a map sheet centred on a fictional example point. The user can pan/zoom, drag the pin or tap the map, choose a radius and confirm. Setup and Settings also offer “เลือกพื้นที่เองบนแผนที่”. Never request device GPS in the demo; explain that 3T location status remains simulated. Show OpenStreetMap attribution and a privacy note about viewed map tiles.
 - People chosen as Trust Contact during first setup count at once; people added later are watched for 7 days.
 - After a finished (not cancelled) transfer that the AI recognises (the ฿25 หมูปิ้ง purchase), a small white-and-purple button under the slip reads "ร้านประจำ? เพิ่มเข้า Trust Zone และ Trust List".
   Tapping it opens a bottom sheet with one add button per suggestion; the slip itself stays clean because people screenshot it.

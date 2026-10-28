@@ -24,14 +24,18 @@ export interface TrustContactMember {
 }
 
 /** Where a Trust Zone place came from: the sign-up address, or the AI reading where the user often transfers. */
-export type ZonePlaceSource = 'address' | 'frequent'
+export type ZonePlaceSource = 'address' | 'frequent' | 'manual'
 
-/** A coarse area the user transfers from regularly. Never an exact coordinate. */
+/** A coarse demo area; a manually chosen pin may also be kept in browser memory. */
 export interface TrustZonePlace {
   id: string
   label: string
   area: string
   source: ZonePlaceSource
+  /** User-positioned demo pin; no device location is requested or sent to TrustGuard. */
+  latitude?: number
+  longitude?: number
+  radiusMeters?: number
 }
 
 /** A place the (simulated) AI proposes; the user decides whether to add it. */

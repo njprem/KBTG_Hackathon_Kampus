@@ -1,21 +1,26 @@
+import { useState, type RefObject } from 'react'
 import { Switch } from '@base-ui/react/switch'
 import { ToggleGroup } from '@base-ui/react/toggle-group'
 import { Toggle } from '@base-ui/react/toggle'
 import { MapPin, Plus, ShieldCheck, Store, Users, WalletCards, X } from 'lucide-react'
-import { DEMO_RECIPIENTS, WATCH_PERIOD_DAYS, findRecipient, pendingContactSuggestions, pendingZoneSuggestions, toZonePlace, watchDaysLeft, type Recipient, type TrustGuardSettings, type TrustZoneStatus } from '../domain/trustguard'
+import { DEMO_RECIPIENTS, WATCH_PERIOD_DAYS, findRecipient, pendingContactSuggestions, pendingZoneSuggestions, watchDaysLeft, type Recipient, type TrustGuardSettings, type TrustZoneStatus, type ZoneSuggestion } from '../domain/trustguard'
 import { MEANING, ZONE_LABEL } from '../ui/copy'
 import { formatBahtShort } from '../ui/format'
 import { Avatar, Card, Heading, InfoDisclosure, cx } from '../ui/primitives'
 import { AiBadge, AiSuggestionRow, SuggestionCard, ZonePlaceRow } from '../ui/ZonePlaces'
+import { ZoneMapPickerLazy as ZoneMapPicker } from '../ui/ZoneMapPickerLazy'
 
 const LIMIT_PRESETS = [5_000, 10_000, 15_000, 20_000]
 const ZONES: TrustZoneStatus[] = ['inside', 'outside', 'unavailable']
 
-export function SettingsScreen({ draft, now, onChange }: {
+export function SettingsScreen({ draft, now, onChange, container }: {
   draft: TrustGuardSettings
   now: string
   onChange: (next: TrustGuardSettings) => void
+  container: RefObject<HTMLElement | null>
 }) {
+  const [mapOpen, setMapOpen] = useState(false)
+  const [mapSuggestion, setMapSuggestion] = useState<ZoneSuggestion | null>(null)
   const suggestions = pendingZoneSuggestions(draft.zonePlaces)
   // AI-suggested accounts get their own row with a reason, so they are not repeated as plain chips.
 
@@ -58,10 +63,13 @@ export function SettingsScreen({ draft, now, onChange }: {
               <AiBadge />
             </div>
             {suggestions.map((suggestion) => (
-              <SuggestionCard key={suggestion.id} suggestion={suggestion} added={false} onToggle={() => onChange({ ...draft, zonePlaces: [...draft.zonePlaces, toZonePlace(suggestion)] })} />
+              <SuggestionCard key={suggestion.id} suggestion={suggestion} added={false} onToggle={() => { setMapSuggestion(suggestion); setMapOpen(true) }} />
             ))}
           </div>
         )}
+        <button type="button" onClick={() => { setMapSuggestion(null); setMapOpen(true) }} className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl border border-line-strong bg-surface px-3 text-[13.5px] font-semibold text-brand">
+          <Plus size={17} aria-hidden="true" /> เพิ่มพื้นที่บนแผนที่
+        </button>
         <p id="zone-label" className="mt-4 text-[13px] text-ink-muted">ตำแหน่งตอนนี้ (จำลองสำหรับการทดลอง)</p>
         <ToggleGroup
           value={[draft.zone]}
@@ -96,6 +104,7 @@ export function SettingsScreen({ draft, now, onChange }: {
           ))}
         </ToggleGroup>
       </Card>
+      <ZoneMapPicker open={mapOpen} onOpenChange={setMapOpen} container={container} suggestion={mapSuggestion} onSave={(place) => onChange({ ...draft, zonePlaces: [...draft.zonePlaces.filter((item) => item.id !== place.id), place] })} />
     </div>
   )
 }

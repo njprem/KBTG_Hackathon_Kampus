@@ -11,7 +11,6 @@ import {
   evaluateTransfer,
   findRecipient,
   suggestionsAfterTransfer,
-  toZonePlace,
   weakeningChanges,
   type LimitBaseline,
   type CompletedTransfer,
@@ -20,6 +19,7 @@ import {
   type AiSuggestions,
   type ContactSuggestion,
   type ZoneSuggestion,
+  type TrustZonePlace,
   type TrustGuardSettings,
 } from './domain/trustguard'
 import { BottomSheet } from './ui/BottomSheet'
@@ -32,6 +32,7 @@ import { SettingsScreen } from './screens/Settings'
 import { SetupScreen } from './screens/Setup'
 import { SmartPauseSheet } from './screens/SmartPause'
 import { TransferScreen, amountError } from './screens/Transfer'
+import { ZoneMapPickerLazy as ZoneMapPicker } from './ui/ZoneMapPickerLazy'
 
 type Screen = 'home' | 'transfer' | 'review' | 'outcome' | 'settings' | 'setup'
 
@@ -80,6 +81,8 @@ export default function App() {
   const [aiHomeDone, setAiHomeDone] = useState(false)
   /** Demo-clock time until which Home shows no AI card ("ไม่แสดงอีก 30 วัน"). */
   const [aiSnoozedUntil, setAiSnoozedUntil] = useState(0)
+  const [zoneMapOpen, setZoneMapOpen] = useState(false)
+  const [zoneMapSuggestion, setZoneMapSuggestion] = useState<ZoneSuggestion | null>(null)
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null)
   const [reviewAt, setReviewAt] = useState('')
   const [pause, setPause] = useState<Pause | null>(null)
@@ -180,6 +183,8 @@ export default function App() {
     setAiSuggestions(null)
     setAiHomeDone(false)
     setAiSnoozedUntil(0)
+    setZoneMapOpen(false)
+    setZoneMapSuggestion(null)
     setEvaluation(null)
     setPause(null)
     setConfirmWeaken(false)
@@ -216,7 +221,12 @@ export default function App() {
 
   /** Accepting an AI suggestion after a transfer; a new Trust Contact is still watched like any later addition. */
   function acceptZone(suggestion: ZoneSuggestion) {
-    const next = { ...settings, zonePlaces: [...settings.zonePlaces, toZonePlace(suggestion)] }
+    setZoneMapSuggestion(suggestion)
+    setZoneMapOpen(true)
+  }
+
+  function saveZoneFromSuggestion(place: TrustZonePlace) {
+    const next = { ...settings, zonePlaces: [...settings.zonePlaces.filter((item) => item.id !== place.id), place] }
     setSettings(next)
     setDraftSettings(cloneSettings(next))
   }
@@ -353,8 +363,8 @@ export default function App() {
                   onHome={() => go('home')}
                 />
               )}
-              {screen === 'setup' && <SetupScreen now={nowIso} onFinish={finishSetup} />}
-              {screen === 'settings' && <SettingsScreen draft={draftSettings} now={nowIso} onChange={setDraftSettings} />}
+              {screen === 'setup' && <SetupScreen now={nowIso} onFinish={finishSetup} container={phoneRef} />}
+              {screen === 'settings' && <SettingsScreen draft={draftSettings} now={nowIso} onChange={setDraftSettings} container={phoneRef} />}
             </m.div>
           </main>
 
@@ -395,6 +405,8 @@ export default function App() {
 
           <ProcessingOverlay active={checking} title="กำลังทำรายการ" detail="กรุณารอสักครู่" />
           <TapRipples target={phoneRef} />
+
+          <ZoneMapPicker open={zoneMapOpen} onOpenChange={setZoneMapOpen} container={phoneRef} suggestion={zoneMapSuggestion} onSave={saveZoneFromSuggestion} />
 
           {evaluation && pause && (
             <SmartPauseSheet

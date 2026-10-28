@@ -112,6 +112,35 @@
   font-variant-numeric: tabular-nums;
 }
 
+.tg-zone-map {
+  background: #e8f1eb;
+}
+.tg-zone-map .leaflet-control-attribution {
+  font-size: 10px;
+}
+.tg-map-pin-icon {
+  background: transparent;
+  border: 0;
+}
+.tg-map-pin {
+  position: relative;
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 3px solid white;
+  border-radius: 50% 50% 50% 6px;
+  background: #087f72;
+  box-shadow: 0 5px 15px rgb(11 93 88 / 0.28);
+  transform: rotate(-45deg);
+}
+.tg-map-pin-dot {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: white;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

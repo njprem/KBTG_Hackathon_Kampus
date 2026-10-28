@@ -22,7 +22,8 @@ They are always shown in this order and with these names.
 
 - **Decision:** 0 failed checks completes normally. 1 failed check shows a one-line notice on the review step and the user continues. 2 or more open Smart Pause.
 - **Why 2 of 3:** the mentor note "Block ตาม Criteria ที่ไม่ผ่าน" was interpreted to avoid pausing ordinary transfers such as a small first payment to someone new. This is an interpretation; confirm with the mentor.
-- **Trust Zone** means where the user usually transfers, learned from their history (mentor), not the address given at sign-up. Being inside never clears another failed check. The prototype simulates the status in Settings and never requests coordinates.
+- **Trust Zone** means where the user usually transfers, learned from their history (mentor), not the address given at sign-up. Being inside never clears another failed check. The prototype simulates the status in Settings and never requests device GPS.
+- **Trust Zone map picker (demo interaction):** adding an AI-suggested area or a manual area opens an interactive map. The user taps or drags a pin, names the area, chooses a 300 m–2 km radius, and confirms. The selected point is held only in the running browser session; the prototype still uses the simulated location status or known scenario place for the 3T decision and does not request device GPS. This does not validate real-world location matching.
 - **Trust Contact** is a list of several trusted people, such as parents (tester request for a whitelist). Nobody is notified or asked to approve; the mentor removed contact alerts and approval. **Demo value:** 7-day watch period after adding someone, so a scammer cannot simply instruct the victim to add their account.
 - **Trust Limit** counts transfers to people outside Trust Contact within an Asia/Bangkok calendar month, so split transfers add up. The user chooses the amount (demo presets ฿5,000-฿20,000; default ฿15,000).
 

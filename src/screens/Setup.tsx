@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { ArrowRight, Check, MapPin, ShieldCheck, Users, WalletCards } from 'lucide-react'
+import { useEffect, useState, type RefObject } from 'react'
+import { ArrowRight, Check, MapPin, Plus, ShieldCheck, Users, WalletCards } from 'lucide-react'
 import {
   DEMO_MONTHLY_SALARY_BAHT,
   DEMO_RECIPIENTS,
@@ -8,13 +8,14 @@ import {
   WATCH_PERIOD_DAYS,
   ZONE_SUGGESTIONS,
   setupContactMember,
-  toZonePlace,
   type TrustGuardSettings,
   type TrustZonePlace,
+  type ZoneSuggestion,
 } from '../domain/trustguard'
 import { formatBahtShort } from '../ui/format'
 import { Avatar, Button, Card, Heading, Steps, cx } from '../ui/primitives'
 import { AiBadge, AiThinking, SuggestionCard } from '../ui/ZonePlaces'
+import { ZoneMapPickerLazy as ZoneMapPicker } from '../ui/ZoneMapPickerLazy'
 
 const LIMIT_PRESETS = [5_000, 10_000, 15_000, 20_000]
 /** Suggested starting limit: about half of the demo salary, rounded to a preset. */
@@ -28,22 +29,27 @@ const PEOPLE = DEMO_RECIPIENTS.filter((recipient) => recipient.kind === 'person'
  * First-time setup: Trust Zone (AI suggestions), Trust Contact, Trust Limit, then a summary.
  * Nothing is checked until the user taps "เปิด TrustGuard" on the last step.
  */
-export function SetupScreen({ now, onFinish }: { now: string; onFinish: (settings: TrustGuardSettings) => void }) {
+export function SetupScreen({ now, onFinish, container }: { now: string; onFinish: (settings: TrustGuardSettings) => void; container: RefObject<HTMLElement | null> }) {
   const [step, setStep] = useState(0)
   const [thinking, setThinking] = useState(true)
   const [places, setPlaces] = useState<TrustZonePlace[]>([])
   const [contacts, setContacts] = useState<string[]>([])
   const [limit, setLimit] = useState(SUGGESTED_LIMIT)
+  const [mapOpen, setMapOpen] = useState(false)
+  const [mapSuggestion, setMapSuggestion] = useState<ZoneSuggestion | null>(null)
 
   useEffect(() => {
     const timer = window.setTimeout(() => setThinking(false), AI_THINKING_MS)
     return () => window.clearTimeout(timer)
   }, [])
 
-  const togglePlace = (id: string) => {
-    const suggestion = ZONE_SUGGESTIONS.find((item) => item.id === id)
-    if (!suggestion) return
-    setPlaces((current) => current.some((place) => place.id === id) ? current.filter((place) => place.id !== id) : [...current, toZonePlace(suggestion)])
+  const togglePlace = (suggestion: ZoneSuggestion) => {
+    if (places.some((place) => place.id === suggestion.id)) {
+      setPlaces((current) => current.filter((place) => place.id !== suggestion.id))
+      return
+    }
+    setMapSuggestion(suggestion)
+    setMapOpen(true)
   }
   const toggleContact = (id: string) => setContacts((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id])
 
@@ -80,7 +86,7 @@ export function SetupScreen({ now, onFinish }: { now: string; onFinish: (setting
                 </div>
                 {fromAddress.map((suggestion) => (
                   // Show which (fictional) address the AI read, in place of the generic reason.
-                  <SuggestionCard key={suggestion.id} suggestion={{ ...suggestion, reason: `แปลงจาก ${DEMO_SIGNUP_ADDRESS}` }} added={places.some((place) => place.id === suggestion.id)} onToggle={() => togglePlace(suggestion.id)} />
+                  <SuggestionCard key={suggestion.id} suggestion={{ ...suggestion, reason: `แปลงจาก ${DEMO_SIGNUP_ADDRESS}` }} added={places.some((place) => place.id === suggestion.id)} onToggle={() => togglePlace(suggestion)} />
                 ))}
               </section>
               <section aria-labelledby="frequent" className="grid grid-cols-1 gap-2">
@@ -89,9 +95,12 @@ export function SetupScreen({ now, onFinish }: { now: string; onFinish: (setting
                   <AiBadge>AI วิเคราะห์การโอน</AiBadge>
                 </div>
                 {frequent.map((suggestion) => (
-                  <SuggestionCard key={suggestion.id} suggestion={suggestion} added={places.some((place) => place.id === suggestion.id)} onToggle={() => togglePlace(suggestion.id)} />
+                  <SuggestionCard key={suggestion.id} suggestion={suggestion} added={places.some((place) => place.id === suggestion.id)} onToggle={() => togglePlace(suggestion)} />
                 ))}
               </section>
+              <button type="button" onClick={() => { setMapSuggestion(null); setMapOpen(true) }} className="flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-line-strong bg-surface px-3 text-[13.5px] font-semibold text-brand">
+                <Plus size={17} aria-hidden="true" /> เลือกพื้นที่เองบนแผนที่
+              </button>
             </div>
           )}
         </>
@@ -171,6 +180,7 @@ export function SetupScreen({ now, onFinish }: { now: string; onFinish: (setting
           {last ? 'เปิด TrustGuard' : 'ถัดไป'} <ArrowRight size={18} />
         </Button>
       </div>
+      <ZoneMapPicker open={mapOpen} onOpenChange={setMapOpen} container={container} suggestion={mapSuggestion} onSave={(place) => setPlaces((current) => [...current.filter((item) => item.id !== place.id), place])} />
     </>
   )
 }

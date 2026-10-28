@@ -77,7 +77,7 @@ export function ZonePlaceRow({ place, onRemove }: { place: TrustZonePlace; onRem
       <PlaceIcon place={place} />
       <span className="min-w-0 flex-1">
         <span className="block text-[14.5px] font-semibold">{place.label}</span>
-        <span className="block truncate text-[12.5px] text-ink-muted">{place.area} · {place.source === 'address' ? 'จากที่อยู่ตอนเปิดบัญชี' : 'AI พบว่าโอนบ่อย'}</span>
+        <span className="block truncate text-[12.5px] text-ink-muted">{place.area} · {place.source === 'address' ? 'จากที่อยู่ตอนเปิดบัญชี' : place.source === 'manual' ? 'คุณปักหมุดเอง' : 'AI พบว่าโอนบ่อย'}</span>
       </span>
       <button type="button" aria-label={`เอา${place.label}ออกจาก Trust Zone`} onClick={onRemove} className="grid size-10 place-items-center rounded-full text-ink-faint hover:bg-surface hover:text-ink">
         <X size={18} />
@@ -163,7 +163,7 @@ export function AiSuggestionsButton({ ai, container, onAcceptZone, onAcceptConta
         description={<span className="flex flex-wrap items-center gap-x-2 gap-y-1"><AiBadge /><span>จากการโอนล่าสุด: {findRecipient(ai.recipientId).name} {formatBaht(ai.amountBaht)}</span></span>}
       >
         <div className="grid grid-cols-1 gap-2">
-          <AiSuggestionRows ai={ai} onAcceptZone={onAcceptZone} onAcceptContact={onAcceptContact} />
+          <AiSuggestionRows ai={ai} onAcceptZone={(suggestion) => { setOpen(false); onAcceptZone(suggestion) }} onAcceptContact={onAcceptContact} />
           <Button className="mt-2" onClick={() => setOpen(false)}>เสร็จแล้ว</Button>
         </div>
       </BottomSheet>
