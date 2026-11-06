@@ -169,7 +169,7 @@ export function SetupScreen({ now, onFinish, container }: { now: string; onFinis
           </Card>
           <p className="mt-3 flex items-start gap-2 rounded-[20px] bg-brand-tint px-4 py-3 text-[13px] leading-snug text-brand">
             <ShieldCheck size={17} className="mt-0.5 shrink-0" aria-hidden="true" />
-            ถ้าไม่ผ่าน 2 ใน 3 ข้อ TrustGuard จะพักรายการไว้ {PAUSE_DELAY_MS / 1000} วินาทีให้คุณทบทวนก่อน
+            เมื่อยอดสะสมถึง Trust Limit จะมีคำเตือน หากไม่ผ่าน Trust Zone หรือ Trust Contact ด้วย จะพักรายการไว้ {PAUSE_DELAY_MS / 1000} วินาที
           </p>
         </>
       )}

@@ -68,7 +68,7 @@ export function SmartPauseSheet({ open, onOpenChange, container, evaluation, rec
         เงินยังไม่ถูกโอน
       </>}
       // Name the consequence, not only the risk: effective warnings say what happens if the user goes on.
-      description={`ไม่ผ่าน ${evaluation.failedCount} จาก 3 ข้อ · ถ้าโอนแล้วอาจไม่ได้คืน`}
+      description="ถึง Trust Limit · โอนแล้วอาจไม่ได้คืน"
     >
       <div className="rounded-[22px] bg-surface px-4 py-3 text-center shadow-card short:py-2.5">
         <div className="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1">

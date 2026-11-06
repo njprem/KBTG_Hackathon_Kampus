@@ -119,7 +119,7 @@ export interface Evaluation {
   contact: ContactCheck
   limit: LimitCheck
   failedCount: number
-  /** 0 failed → complete, 1 → quiet notice on review, 2 or more → Smart Pause. Off → complete. */
+  /** Trust Limit pass or protection off → complete; Limit fail alone → notice; Limit plus Zone/Contact fail → Smart Pause. */
   decision: Decision
 }
 
@@ -130,8 +130,6 @@ const DAY_MS = 86_400_000
 export const WATCH_PERIOD_DAYS = 7
 /** Mentor feedback: the earlier 2-minute wait was too long. A hypothesis to test, not policy. */
 export const PAUSE_DELAY_MS = 30_000
-/** Pause when this many of the 3T checks fail. */
-export const PAUSE_FAILED_CHECKS = 2
 
 function timestamp(value: string): number {
   const parsed = Date.parse(value)
@@ -240,9 +238,9 @@ export function evaluateTransfer(input: {
   }
 
   const failedCount = [zone, contact, limit].filter((check) => check.state === 'fail').length
-  const decision: Decision = !settings.enabled || failedCount === 0
+  const decision: Decision = !settings.enabled || limit.state === 'pass'
     ? 'complete'
-    : failedCount >= PAUSE_FAILED_CHECKS ? 'pause' : 'notice'
+    : zone.state === 'fail' || contact.state === 'fail' ? 'pause' : 'notice'
 
   return { monthKey, zone, contact, limit, failedCount, decision }
 }

@@ -32,10 +32,36 @@ test('scam-style transfer fails Trust Contact and Trust Limit, so it pauses', ()
   assert.equal(result.decision, 'pause')
 })
 
-test('one failed check shows a notice instead of a pause', () => {
+test('a passing Trust Limit completes even when Trust Contact fails', () => {
   const result = evaluateTransfer({ draft: draft('niran', 6_000), ledger: [], settings: settings(), baseline: null })
   assert.equal(result.failedCount, 1)
-  assert.equal(result.decision, 'notice')
+  assert.equal(result.decision, 'complete')
+})
+
+test('Trust Limit reaches its threshold at exactly ฿15,000', () => {
+  for (const [amountBaht, limitState, decision] of [[14_999, 'pass', 'complete'], [15_000, 'fail', 'pause']]) {
+    const result = evaluateTransfer({ draft: draft('niran', amountBaht), ledger: [], settings: settings(), baseline: null })
+    assert.equal(result.limit.state, limitState)
+    assert.equal(result.decision, decision)
+  }
+})
+
+test('decision table covers every reachable Zone, Contact, and Limit state', () => {
+  const zones = [['inside', 'pass'], ['outside', 'fail'], ['unavailable', 'unknown']]
+  const contacts = [['mom', 'pass'], ['niran', 'fail'], ['pork-stall', 'unknown']]
+
+  for (const [zoneStatus, zoneState] of zones) {
+    for (const [recipientId, contactState] of contacts) {
+      for (const [amountBaht, expectedLimit] of [[500, 'pass'], [15_000, contactState === 'pass' ? 'pass' : 'fail']]) {
+        const result = evaluateTransfer({ draft: draft(recipientId, amountBaht), ledger: [], settings: settings({ zone: zoneStatus }), baseline: null })
+        const expectedDecision = expectedLimit === 'pass' ? 'complete' : zoneState === 'fail' || contactState === 'fail' ? 'pause' : 'notice'
+        assert.deepEqual([result.zone.state, result.contact.state, result.limit.state, result.decision],
+          [zoneState, contactState, expectedLimit, expectedDecision],
+          `${zoneState}/${contactState}/${expectedLimit}`)
+        if (contactState === 'pass') assert.equal(result.limit.counted, false)
+      }
+    }
+  }
 })
 
 test('split transfers are counted together and the third one pauses', () => {
@@ -74,13 +100,13 @@ test('watch period ends after the configured days', () => {
   assert.equal(watchDaysLeft(member, '2026-10-08T10:00:00+07:00'), 0)
 })
 
-test('outside Trust Zone fails; unavailable location is not counted as a failure', () => {
+test('outside Trust Zone fails; unavailable location is unknown; neither holds a transfer below Trust Limit', () => {
   const outside = evaluateTransfer({ draft: draft('niran', 500), ledger: [], settings: settings({ zone: 'outside' }), baseline: null })
   assert.equal(outside.zone.state, 'fail')
-  assert.equal(outside.decision, 'pause')
+  assert.equal(outside.decision, 'complete')
   const unavailable = evaluateTransfer({ draft: draft('niran', 500), ledger: [], settings: settings({ zone: 'unavailable' }), baseline: null })
   assert.equal(unavailable.zone.state, 'unknown')
-  assert.equal(unavailable.decision, 'notice')
+  assert.equal(unavailable.decision, 'complete')
 })
 
 test('after continuing past a pause, small transfers that month do not pause again', () => {
@@ -88,7 +114,7 @@ test('after continuing past a pause, small transfers that month do not pause aga
   const baseline = { monthKey: '2026-10', baht: 18_000 }
   const small = evaluateTransfer({ draft: draft('niran', 20), ledger, settings: settings(), baseline })
   assert.equal(small.limit.state, 'pass')
-  assert.equal(small.decision, 'notice')
+  assert.equal(small.decision, 'complete')
   const big = evaluateTransfer({ draft: draft('niran', 15_000), ledger, settings: settings(), baseline })
   assert.equal(big.limit.state, 'fail')
   assert.equal(big.decision, 'pause')

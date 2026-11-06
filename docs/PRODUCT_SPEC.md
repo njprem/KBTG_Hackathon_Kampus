@@ -1,6 +1,6 @@
 # TrustGuard Prototype Product Decisions
 
-Status: v3.0, 20 October 2026, rebuilt after the Prototype 2.0 mentor and user-testing round.
+Status: updated 6 November 2026 with the owner's Trust Limit warning gate, following the v3.0 rebuild after the Prototype 2.0 mentor and user-testing round.
 Mentor feedback outweighs tester feedback where they differ, and v3.0 may diverge from the submitted proposal.
 Rules marked **Demo value** are prototype choices for testing, not approved policy.
 
@@ -20,8 +20,8 @@ They are always shown in this order and with these names.
 | **Trust Contact** | The recipient is on the user's Trust Contact list and the watch period has ended | Anyone else, including someone added in the last 7 days | - |
 | **Trust Limit** | This month's counted total, including this transfer, is below the limit | The total reaches the limit | Transfers to a Trust Contact are not counted |
 
-- **Decision:** 0 failed checks completes normally. 1 failed check shows a one-line notice on the review step and the user continues. 2 or more open Smart Pause.
-- **Why 2 of 3:** the mentor note "Block ตาม Criteria ที่ไม่ผ่าน" was interpreted to avoid pausing ordinary transfers such as a small first payment to someone new. This is an interpretation; confirm with the mentor.
+- **Decision (owner, 6 November 2026):** Trust Limit is required for any transfer warning. When it passes, complete normally regardless of Trust Zone and Trust Contact. When it fails without a failing Zone or Contact check, show a notice on review and allow confirmation without a wait. When it fails together with Zone or Contact, open Smart Pause. Unknown checks are not failures.
+- **Counting stays unchanged:** reaching the limit triggers it, transfers to effective Trust Contacts are excluded, and the existing post-pause confirmation baseline still applies. The limit-only notice is reachable for an AI-known recipient whose Contact check is unknown; a trusted recipient's own transfer remains exempt.
 - **Trust Zone** means where the user usually transfers, learned from their history (mentor), not the address given at sign-up. Being inside never clears another failed check. The prototype simulates the status in Settings and never requests device GPS.
 - **Trust Zone map picker (demo interaction):** adding an AI-suggested area or a manual area opens an interactive map. The user taps or drags a pin, names the area, chooses a 300 m–2 km radius, and confirms. The selected point is held only in the running browser session; the prototype still uses the simulated location status or known scenario place for the 3T decision and does not request device GPS. This does not validate real-world location matching.
 - **Trust Contact** is a list of several trusted people, such as parents (tester request for a whitelist). Nobody is notified or asked to approve; the mentor removed contact alerts and approval. **Demo value:** 7-day watch period after adding someone, so a scammer cannot simply instruct the victim to add their account.
@@ -55,7 +55,7 @@ All removed for the mentor's comment that the feature set was too large:
 
 ## Open questions
 
-- Is 2 of 3 the right pause rule, and is 30 seconds long enough to help?
+- Does the Trust Limit warning gate reduce unnecessary interruptions while still helping users stop concerning transfers, and is 30 seconds long enough to help?
 - How should Trust Zone be learned and explained in a real app, and what is the fallback when location is off?
 - Is 7 days the right watch period for a new Trust Contact, and who may remove one?
 - Should registered merchants be treated differently? The ฿25 หมูปิ้ง purchase passes because the AI already knows the place and shop (not counted until the user confirms); afterwards the simulated AI suggests trusting the place or the shop, which is offered only after the transfer, never during a pause.

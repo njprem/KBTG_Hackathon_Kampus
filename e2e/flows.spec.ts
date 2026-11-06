@@ -52,7 +52,7 @@ async function confirmZoneOnMap(page: Page) {
 }
 
 test.describe('Smart Pause', () => {
-  test('scam-style deposit fails 2 of 3 checks and pauses', async ({ page }, testInfo) => {
+  test('scam-style deposit reaches Trust Limit with an untrusted recipient and pauses', async ({ page }, testInfo) => {
     await page.clock.install()
     await openScenario(page, /ค่าจองสินค้า/)
     await expect(page.getByLabel('จำนวนเงิน (บาท)')).not.toHaveValue('')
@@ -67,7 +67,7 @@ test.describe('Smart Pause', () => {
     await page.clock.resume()
     await expect(pauseSheet(page)).toBeVisible()
     await expect(page.getByRole('status')).not.toContainText('กำลังทำรายการ')
-    await expect(pauseSheet(page)).toContainText('ไม่ผ่าน 2 จาก 3 ข้อ')
+    await expect(pauseSheet(page)).toContainText('ถึง Trust Limit · โอนแล้วอาจไม่ได้คืน')
     await expect(checkRow(page, 'Trust Zone', 'ผ่าน')).toBeVisible()
     await expect(checkRow(page, 'Trust Contact', 'ไม่ผ่าน')).toBeVisible()
     await expect(checkRow(page, 'Trust Limit', 'ไม่ผ่าน')).toBeVisible()
@@ -84,7 +84,7 @@ test.describe('Smart Pause', () => {
     await limit.click()
     await expect(limit).toHaveAttribute('aria-expanded', 'true')
     await expect(pauseSheet(page)).toContainText('ยอดเดือนนี้ ฿18,000 ถึงวงเงิน ฿15,000')
-    await expect(pauseSheet(page)).toContainText('Trust Limit คือวงเงินที่คุณตั้งเอง')
+    await expect(pauseSheet(page)).toContainText('Trust Limit คือวงเงินสะสมรายเดือน')
     await shot(page, testInfo, '1 Trust Limit expanded')
     await limit.click()
     await expect(limit).toHaveAttribute('aria-expanded', 'false')
@@ -140,16 +140,31 @@ test.describe('Smart Pause', () => {
 })
 
 test.describe('Trust Limit', () => {
-  test('split transfers: notice first, pause on the third', async ({ page }, testInfo) => {
+  test('Trust Limit alone shows a review warning and confirms without a timer', async ({ page }, testInfo) => {
+    await page.goto('/')
+    await transferManually(page, '18000')
+    await page.getByRole('radio', { name: 'ร้านหมูปิ้งป้าแดง' }).click()
+    await review(page)
+    await expect(page.getByRole('note')).toContainText('ยอดสะสมถึง Trust Limit')
+    await expect(page.getByRole('note')).toContainText('ยอดเดือนนี้ ฿18,000 ถึงวงเงิน ฿15,000')
+    await shot(page, testInfo, '1 limit-only warning')
+    await confirm(page)
+    await expect(page.getByRole('heading', { name: 'โอนสำเร็จ (จำลอง)' })).toBeVisible()
+    await expect(pauseSheet(page)).toHaveCount(0)
+    await nav(page, 'หน้าหลัก').click()
+    await expect(page.getByText('฿10,000.00')).toBeVisible()
+  })
+
+  test('split transfers: no warning below the limit, pause on the third', async ({ page }, testInfo) => {
     await openScenario(page, /โอนแบ่งจ่าย/)
     await review(page)
-    await expect(page.getByRole('note')).toContainText('นิรันดร์ ไม่ใช่ Trust Contact ของคุณ')
-    await expect(page.getByRole('note')).toContainText('ไม่ผ่าน 1 จาก 3 ข้อ')
-    await shot(page, testInfo, '1 first transfer notice')
+    await expect(page.getByRole('note')).toHaveCount(0)
+    await shot(page, testInfo, '1 first transfer without warning')
     await confirm(page)
     await expect(page.getByRole('heading', { name: 'โอนสำเร็จ (จำลอง)' })).toBeVisible()
     await button(page, 'โอนรายการเดิมอีกครั้ง').click()
     await review(page)
+    await expect(page.getByRole('note')).toHaveCount(0)
     await confirm(page)
     await nav(page, 'หน้าหลัก').click()
     await expect(page.getByText('฿12,000 / ฿15,000')).toBeVisible()
@@ -185,8 +200,8 @@ test.describe('Trust Limit', () => {
     await continuePastPause(page)
     await transferManually(page, '20')
     await review(page)
-    await expect(page.getByRole('note')).toContainText('ไม่ผ่าน 1 จาก 3 ข้อ')
-    await shot(page, testInfo, '1 small transfer notice only')
+    await expect(page.getByRole('note')).toHaveCount(0)
+    await shot(page, testInfo, '1 small transfer without warning')
     await confirm(page)
     await expect(page.getByRole('heading', { name: 'โอนสำเร็จ (จำลอง)' })).toBeVisible()
   })
@@ -299,17 +314,35 @@ test.describe('Trust Contact', () => {
 })
 
 test.describe('Trust Zone', () => {
-  test('outside Trust Zone pauses even a small transfer to a new person', async ({ page }, testInfo) => {
+  test('outside Trust Zone does not warn for a small transfer to a new person', async ({ page }, testInfo) => {
     await page.goto('/')
     await nav(page, 'ตั้งค่า').click()
     await button(page, 'อยู่นอก Trust Zone').click()
     await saveSettings(page)
     await transferManually(page, '500')
     await review(page)
+    await expect(page.getByRole('note')).toHaveCount(0)
+    await shot(page, testInfo, '1 outside zone below the limit')
+    await confirm(page)
+    await expect(page.getByRole('heading', { name: 'โอนสำเร็จ (จำลอง)' })).toBeVisible()
+    await expect(pauseSheet(page)).toHaveCount(0)
+  })
+
+  test('outside Trust Zone pauses when the transfer reaches Trust Limit', async ({ page }, testInfo) => {
+    await page.goto('/')
+    await nav(page, 'ตั้งค่า').click()
+    await button(page, 'อยู่นอก Trust Zone').click()
+    await saveSettings(page)
+    // The AI-known shop is not a failing Contact, so Zone is the additional failed check.
+    await nav(page, 'โอนเงิน').click()
+    await page.getByRole('radio', { name: 'ร้านหมูปิ้งป้าแดง' }).click()
+    await page.getByLabel('จำนวนเงิน (บาท)').fill('15000')
+    await review(page)
     await confirm(page)
     await expect(checkRow(page, 'Trust Zone', 'ไม่ผ่าน')).toBeVisible()
-    await expect(checkRow(page, 'Trust Limit', 'ผ่าน')).toBeVisible()
-    await shot(page, testInfo, '1 outside zone')
+    await expect(checkRow(page, 'Trust Contact', 'ไม่นับ')).toBeVisible()
+    await expect(checkRow(page, 'Trust Limit', 'ไม่ผ่าน')).toBeVisible()
+    await shot(page, testInfo, '1 outside zone at the limit')
   })
 
   test('unavailable location is not counted as a failure', async ({ page }) => {
@@ -319,7 +352,7 @@ test.describe('Trust Zone', () => {
     await saveSettings(page)
     await transferManually(page, '500')
     await review(page)
-    await expect(page.getByRole('note')).toContainText('ไม่ผ่าน 1 จาก 3 ข้อ')
+    await expect(page.getByRole('note')).toHaveCount(0)
   })
 })
 
@@ -372,16 +405,23 @@ test.describe('Layout', () => {
       await expect(page.getByRole('navigation', { name: 'เมนูหลัก' })).toBeVisible()
       await noScroll(page, 'main')
       await review(page)
-      await expect(page.getByRole('note')).toBeVisible()
+      await expect(page.getByRole('note')).toHaveCount(0)
       await noScroll(page, 'main')
-      await shot(page, testInfo, `1 review with note ${width}x${height}`)
+      await shot(page, testInfo, `1 review below limit ${width}x${height}`)
+      await nav(page, 'หน้าหลัก').click()
+      await transferManually(page, '15000')
+      await page.getByRole('radio', { name: 'ร้านหมูปิ้งป้าแดง' }).click()
+      await review(page)
+      await expect(page.getByRole('note')).toContainText('ยอดสะสมถึง Trust Limit')
+      await noScroll(page, 'main')
+      await shot(page, testInfo, `2 review with limit warning ${width}x${height}`)
       await nav(page, 'หน้าหลัก').click()
       await button(page, /ค่าจองสินค้า/).click()
       await review(page)
       await confirm(page)
       await expect(pauseSheet(page)).toBeVisible()
       await noScroll(page, '[role="dialog"] .overflow-y-auto')
-      await shot(page, testInfo, `2 Smart Pause ${width}x${height}`)
+      await shot(page, testInfo, `3 Smart Pause ${width}x${height}`)
     })
   }
 })

@@ -39,4 +39,4 @@ These are starting choices, not fixed quotas. Official OpenAI guidance positions
 ## Current milestone
 
 v3.0 is built (see [the handoff](PROJECT_HANDOFF.md)).
-Next: user walkthroughs of the four Home scenarios, mentor confirmation of the 2-of-3 rule and 30-second wait, and a protected Vercel preview for testers.
+Next: user walkthroughs of the four Home scenarios, validation of the owner's Trust Limit warning gate (6 November 2026) and 30-second wait, and a protected Vercel preview for testers.

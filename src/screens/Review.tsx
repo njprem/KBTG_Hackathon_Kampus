@@ -1,15 +1,8 @@
 import { ArrowRight, Info, MapPin, Send } from 'lucide-react'
 import { DEMO_SENDER, type Evaluation, type Recipient } from '../domain/trustguard'
-import { ZONE_LABEL, limitStatusLine, contactStatusLine, zoneStatusLine } from '../ui/copy'
+import { ZONE_LABEL, limitStatusLine } from '../ui/copy'
 import { formatBaht } from '../ui/format'
 import { Button, Card, DataRow, Heading, Steps, cx } from '../ui/primitives'
-
-/** With exactly one failed check there is no pause: a quiet note on review, then the user continues. */
-function singleFailNote(evaluation: Evaluation, recipient: Recipient) {
-  if (evaluation.zone.state === 'fail') return zoneStatusLine(evaluation.zone.status)
-  if (evaluation.contact.state === 'fail') return contactStatusLine(evaluation, recipient)
-  return limitStatusLine(evaluation)
-}
 
 export function ReviewScreen({ evaluation, recipient, amountBaht, paused, onConfirm, onEdit }: {
   evaluation: Evaluation
@@ -48,8 +41,8 @@ export function ReviewScreen({ evaluation, recipient, amountBaht, paused, onConf
         <div className="mt-3 flex items-start gap-2.5 rounded-[20px] bg-caution-soft px-4 py-3 text-caution snug:mt-2 snug:py-2.5 short:py-2" role="note">
           <Info size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
           <p className="text-[13.5px] leading-snug">
-            <span className="block font-semibold">{singleFailNote(evaluation, recipient)}</span>
-            <span className="block">ไม่ผ่าน 1 จาก 3 ข้อ ตรวจชื่อผู้รับให้แน่ใจแล้วโอนต่อได้เลย</span>
+            <span className="block font-semibold">{limitStatusLine(evaluation)}</span>
+            <span className="block">ยอดสะสมถึง Trust Limit ตรวจสอบรายการก่อนยืนยันโอนต่อได้เลย</span>
           </p>
         </div>
       )}

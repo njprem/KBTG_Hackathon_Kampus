@@ -25,7 +25,7 @@ Every account, person, balance and outcome is fictional, and a small "Prototype 
 | Text | Ink `#17312F`; secondary `#526764`; faint `#7B8D87` |
 | Pass / fail marks | Green `#0F7A4F` check, red `#B3131F` cross, grey dash for "not counted" |
 | Red | Reserved for the frame around the 3T checklist and the ✗ marks inside it (mentor reference image). Nothing else on a TrustGuard screen is red. Form validation errors stay red as a general convention. |
-| Amber | `#8A5300` on `#FFF3D8` for the scam warning line, the one-check notice, "จะถูกพัก" badges and a Trust Limit ring at 100% |
+| Amber | `#8A5300` on `#FFF3D8` for the scam warning line, the limit-only notice, "จะถูกพัก" badges and a Trust Limit ring at 100% |
 | Shape | 20-28 px card corners, round icon buttons, pill navigation, 52 px primary buttons; all shadows at 20% of their original strength (owner decision, 21 October 2026) |
 | Type | Google Sans (OFL, self-hosted variable font, includes Thai) at weights 400-700; tabular numerals for amounts |
 
@@ -52,8 +52,8 @@ Motion follows a reference banking app the team chose; durations stay short and 
 | --- | --- |
 | Home | Greeting, balance card with hide toggle, **ลองฟีเจอร์ TrustGuard** (four large scenario cards, numbered, with a live badge: จะถูกพัก / มีคำเตือน / โอนผ่าน / ยอดเงินไม่พอ), quick transfer avatar row, TrustGuard 3T card with Trust Limit ring, recent transfers. |
 | Transfer | Step 1 of 2. Recipient avatar row (radio group, Trust Contact badge), selected recipient account card, amount field with balance and errors. The action is pinned just above the bottom nav. On phones up to 860 px tall the account row is hidden; review shows it. |
-| Review | Step 2 of 2. Amount, from/to rows and simulated location. One failed check adds an amber note here, and the send icon is hidden to make room. The actions are pinned just above the bottom nav, side by side on phones up to 860 px tall. |
-| Smart Pause | Badge, "TrustGuard พักรายการนี้ไว้ก่อน" pill, title "เงินยังไม่ถูกโอน", "ไม่ผ่าน N จาก 3 ข้อ · ถ้าโอนแล้วอาจไม่ได้คืน", amount card with salary share, red-framed 3T checklist, amber scam line "ถ้ามีคนบอกให้กดข้ามหน้านี้ คนนั้นคือมิจฉาชีพ", Cancel (primary), Continue with countdown, demo-only skip link. |
+| Review | Step 2 of 2. Amount, from/to rows and simulated location. Only a failing Trust Limit without another failed check adds an amber note here, and the send icon is hidden to make room. A passing limit produces no warning, even when Zone and Contact fail. The actions are pinned just above the bottom nav, side by side on phones up to 860 px tall. |
+| Smart Pause | Requires a failing Trust Limit plus a failing Zone or Contact. Badge, "TrustGuard พักรายการนี้ไว้ก่อน" pill, title "เงินยังไม่ถูกโอน", "ถึง Trust Limit · โอนแล้วอาจไม่ได้คืน", amount card with salary share, red-framed 3T checklist, amber scam line "ถ้ามีคนบอกให้กดข้ามหน้านี้ คนนั้นคือมิจฉาชีพ", Cancel (primary), Continue with countdown, demo-only skip link. |
 | Outcome | Completed, continued or cancelled card with amount and recipient; AOC 1441 hotline when the user was paused; "โอนรายการเดิมอีกครั้ง" reopens the transfer form with the same recipient and amount. |
 | Settings | On/off switch, then Trust Zone, Trust Contact and Trust Limit sections in that order, each with an (i) disclosure; save button above the floating nav. |
 

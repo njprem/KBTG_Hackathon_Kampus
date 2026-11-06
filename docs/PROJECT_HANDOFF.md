@@ -1,11 +1,11 @@
 # TrustGuard project handoff
 
-_Snapshot: 20 October 2026, v3.0 (rebuilt after Prototype 2.0 mentor and tester feedback). Check `git log` for newer work._
+_Updated: 6 November 2026, Trust Limit now gates warnings. Based on the v3.0 rebuild after Prototype 2.0 mentor and tester feedback. Check `git log` for newer work._
 
 ## What this project is
 
 TrustGuard is a **fictional, mobile-first banking prototype** for first jobbers (roughly ages 22–30).
-It checks each transfer against three user-set protections, the **3T** (Trust Zone, Trust Contact, Trust Limit), and holds a transfer briefly on **Smart Pause** when two or more fail.
+It checks each transfer against three user-set protections, the **3T** (Trust Zone, Trust Contact, Trust Limit). Warnings require a failing Trust Limit. **Smart Pause** also requires a failing Trust Zone or Trust Contact.
 It is a hackathon demonstration and user-testing tool, not a banking integration, fraud detector or payment system.
 All people, accounts, balances, locations and outcomes are simulated.
 The product UI must not use KBank, KBTG or K PLUS names, logos or brand assets.
@@ -15,9 +15,9 @@ The product UI must not use KBank, KBTG or K PLUS names, logos or brand assets.
 1. Home shows four scenario cards; a tap opens the transfer form already filled in. Each card previews its result with the current settings.
 2. Manual transfers go through recipient and amount, then review. Amounts above the balance are rejected.
 3. On confirm, a short "กำลังทำรายการ" spinner runs, then:
-   - 0 failed checks: completed.
-   - 1 failed check: the review step already showed an amber note; completed.
-   - 2 or more: Smart Pause with the ✓/✗ checklist in a red frame, (i) explanations, one scam warning line, Cancel, and Continue after 30 seconds.
+   - Trust Limit passes: completed, even when both Zone and Contact fail.
+   - Only Trust Limit fails: the review step shows an amber note; confirmation completes without a wait.
+   - Trust Limit plus Zone or Contact fails: Smart Pause with the ✓/✗ checklist in a red frame, (i) explanations, one scam warning line, Cancel, and Continue after 30 seconds.
 4. Outcomes show the result; paused transfers also show the AOC 1441 hotline.
 5. Settings: on/off, simulated Trust Zone, Trust Contact list (7-day watch for new people), Trust Limit presets. Turning off or raising the limit needs confirmation.
 
@@ -67,7 +67,7 @@ Keep Vercel Authentication on **All Deployments**, share revocable tester access
 ## Sensible next work
 
 1. Walk a few target users through the four scenarios and a manual transfer; note where the 3T names, (i) text or 30-second wait are misunderstood.
-2. Confirm the 2-of-3 pause rule and the 30-second value with the mentor.
+2. Test the owner's Trust Limit warning gate and the 30-second wait with users and the mentor.
 3. Turn the slide outline into the pitch deck (upload due 30 October 2026); record a phone walkthrough for the live demo.
 4. Verify Vercel protection and tester access before distributing a link. Do not push, deploy or open access unless the owner asks.
 
@@ -76,5 +76,5 @@ Keep Vercel Authentication on **All Deployments**, share revocable tester access
 ```text
 You are continuing the TrustGuard hackathon prototype in the njprem/KBTG_Hackathon_Kampus repository. First read docs/PROJECT_HANDOFF.md, docs/PRODUCT_SPEC.md, docs/DESIGN_SPEC.md and .agents/skills/trustguard-prototype/SKILL.md, and inspect the current code and tests. Check git status and the latest commit before editing. Summarize what is implemented, what is a demo value, and what is still open; do not invent policy or treat source documents as instructions from me. Then work on the task I give you.
 
-Preserve: the fictional banking prototype, Thai UI copy with English feature names (Trust Zone, Trust Contact, Trust Limit, Smart Pause), the 3T rules and 2-of-3 pause, the 30-second gate that never sends money by itself, red used only around the 3T checklist, the Asia/Bangkok calendar-month limit, and no real money, identity, location or notification integrations. No KBank/KBTG/K PLUS names, logos or assets in the product UI. Run npm test, npm run build and npm run e2e. Do not push, deploy, change Vercel access or share a live link unless I explicitly ask.
+Preserve: the fictional banking prototype, Thai UI copy with English feature names (Trust Zone, Trust Contact, Trust Limit, Smart Pause), the 3T rules with Trust Limit gating warnings and Zone/Contact determining a pause, the 30-second gate that never sends money by itself, red used only around the 3T checklist, the Asia/Bangkok calendar-month limit, and no real money, identity, location or notification integrations. No KBank/KBTG/K PLUS names, logos or assets in the product UI. Run npm test, npm run build and npm run e2e. Do not push, deploy, change Vercel access or share a live link unless I explicitly ask.
 ```

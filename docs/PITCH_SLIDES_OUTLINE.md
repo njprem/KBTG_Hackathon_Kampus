@@ -5,7 +5,7 @@ Working outline for the team. Keep product explanation here; the clickable banki
 | Slide | Time | What the audience sees | Speaker point |
 | --- | ---: | --- | --- |
 | 1. Problem and user | 30 sec | A first jobber about to transfer money under pressure | A rushed transfer is hard to reconsider once sent. The user needs a clear pause at the moment of decision. Do not claim a measured fraud rate without a source. |
-| 2. How it works | 55 sec | The 3T: Trust Zone, Trust Contact, Trust Limit, and the 2-of-3 rule | The user sets up three protections once. Every transfer is checked; one failure is a quiet note, two or more pause the transfer before any money is sent. |
+| 2. How it works | 55 sec | The 3T: Trust Zone, Trust Contact, Trust Limit, with the limit gating warnings | The user sets up three protections once. Below Trust Limit, transfers proceed normally. At the limit, a notice appears; a failing Zone or Contact adds a 30-second pause before any money is sent. |
 | 3. Live prototype | 70 sec | Phone recording or controlled walkthrough starting from the Home scenario cards | Show the scam-style deposit pausing with the ✓/✗ checklist, tap (i) on Trust Limit, then the 30-second gate (use the labeled demo skip). Contrast with the transfer to a Trust Contact that passes straight through. |
 | 4. Value and next test | 25 sec | One plain takeaway and a small test plan | The intended value is more time and a second perspective before a concerning transfer. This is a hypothesis, not a measured outcome. Test whether 30 seconds and the checklist are enough for users to stop, and how often ordinary transfers are paused. |
 

@@ -26,7 +26,7 @@ export function SettingsScreen({ draft, now, onChange, container }: {
 
   return (
     <div className="grid grid-cols-1 gap-3">
-      <Heading eyebrow="การปกป้องของคุณ" title="ตั้งค่า TrustGuard" detail="เช็ก 3T ก่อนเงินออก ไม่ผ่าน 2 ใน 3 ข้อ จะพักไว้ 30 วินาที" />
+      <Heading eyebrow="การปกป้องของคุณ" title="ตั้งค่า TrustGuard" detail="เตือนเมื่อยอดสะสมถึง Trust Limit หากไม่ผ่าน Trust Zone หรือ Trust Contact จะพักไว้ 30 วินาที" />
 
       <Card className="p-4">
         <label className="flex items-center gap-3">

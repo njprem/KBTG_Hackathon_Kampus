@@ -16,7 +16,7 @@ v3.0 (20 October 2026) replaced the earlier protection levels and contact approv
 
 - Audience: first jobbers aged 22–30 who may be pressured into authorizing a scam transfer.
 - The **3T** checks, always in this order and with these names: **Trust Zone** (usual transfer area; unavailable is not a failure), **Trust Contact** (trusted people; new additions are watched for 7 days), **Trust Limit** (monthly amount to non-contacts, Asia/Bangkok calendar month).
-- 2 or more failed checks open **Smart Pause**: a compact sheet with a ✓/✗ checklist, (i) explanations, one scam warning line, Cancel, and Continue after 30 seconds. 1 failed check is a note on review only.
+- Owner decision (6 November 2026): **Trust Limit gates all transfer warnings**. Below the counted limit, transfers complete normally even when Trust Zone and Trust Contact fail. When Trust Limit fails alone, show a note on review without a wait. When Trust Limit and either Trust Zone or Trust Contact fail, open **Smart Pause**: a compact sheet with a ✓/✗ checklist, (i) explanations, one scam warning line, Cancel, and Continue after 30 seconds. Preserve the existing reaches-limit boundary, trusted-recipient counting exemption and confirmation baseline.
 - No contact is notified or asked to approve. Do not reintroduce removed features (levels, approval, callbacks, self-check) without the owner's decision.
 - Mark unresolved rules as demo values until the team decides them.
 
